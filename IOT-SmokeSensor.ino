@@ -15,6 +15,8 @@
 
 #define PORT 80
 
+#include <ESP8266WiFi.h>
+
 // server objekt
 WiFiServer server(PORT);
 
@@ -89,10 +91,7 @@ String webpage1 = "<html>\
 <h2>ESP8266 - Simple Webserver</h2>\
 <p>GAS: ";
 // hier wird die temperatur eingefuegt
-String webpage2 = "</p>\
-
-</body>\
-</html>";
+String webpage2 = "</p></body></html>";
 
 void loop() {
   int analogSensor = analogRead(smokeA0);
@@ -129,8 +128,6 @@ void loop() {
   Serial.println(req);
   client.flush();
   // webseite zusammensetzen
-  temp = dht.readTemperature();
-  humi = dht.readHumidity();
   String page = webpage1;
   page += analogSensor;
   page += webpage2; 
