@@ -17,6 +17,8 @@
 
 #include <ESP8266WiFi.h>
 
+#define RETRYCOUNTER 10000 //loops
+
 // server objekt
 WiFiServer server(PORT);
 
@@ -38,13 +40,13 @@ bool espConnectWifi()
 // baudrate serial monitor
 #define BAUD 115200
 
+int loops = 0;
 int redLed = D5;
 int greenLed = D2;
 int buzzer = D1;
-int smokeA0 = A0;
-// Your threshold value
+int smokeA0 = A0; // Your threshold value
 int sensorThres = 300;
-bool wificonnecterror = false;
+bool wificonnected = false;
 
 void setup() {
   pinMode(redLed, OUTPUT);
@@ -55,32 +57,29 @@ void setup() {
 
 //WIFI
  unsigned long t0, t1;
-  bool c;
   // verbinde esp mit dem wlan
   Serial.println("### start esp simple web server\n");
   Serial.println("### connect to wifi");
   t0 = millis();
-  c = espConnectWifi();
+  wificonnected = espConnectWifi();
   t1 = millis();
-  if(c) {
+  if(wificonnected) {
     Serial.print("### connected after ");
     Serial.print(t1 - t0);
     Serial.println(" ms\n");
-    wificonnecterror=false;
   }
   else {
     Serial.print("### NOT connected in ");
     Serial.print(t1 - t0);
     Serial.println(" ms");
     Serial.println("### Aborting: connect WIFI, please!");
-    wificonnecterror=true;
   }
   // Server starten und ip adresse ausgeben
   server.begin();
   Serial.print("### server started. ip adresse:  ");
   Serial.println(WiFi.localIP());
   
-}
+} //Setup
 
 
 // webseite
@@ -116,42 +115,52 @@ void loop() {
   }
 
   //WIFI not Connected => LED Blinks
-  if (wificonnecterror){
+  if (!wificonnected){
     digitalWrite(redLed, HIGH);
      delay(1000); //was 100ms
   }
-  if (wificonnecterror){
+  if (!wificonnected){ // maybe && (analogSensor < sensorThres) but green goes off anyway.
     digitalWrite(redLed, LOW);
   }
   delay(1000); //was 100ms
-  
 
-
-
- unsigned long t0, t1;
+ // Just do that, if WIFI is connected;
+ if  (wificonnected) {
+    
+      unsigned long t0, t1;
+      
+      // auf verbindung von client warten
+      WiFiClient client = server.available();
+      if( !client)
+        return;
+      // request von client lesen
+      String req = client.readStringUntil('\r');
+      Serial.print(">>> client request: ");
+      Serial.println(req);
+      client.flush();
+      // webseite zusammensetzen
+      String page = webpage1;
+      page += analogSensor;
+      page += webpage2; 
+      page += "\r\n"; 
+      // seite an client senden
+      t0 = millis();
+      client.print(page);
+      t1 = millis();
+      delay(5);
+      Serial.print(">>> page ");
+      Serial.print(" sent in ");
+      Serial.print(t1 - t0);
+      Serial.println(" ms");
+  }
   
-  // auf verbindung von client warten
-  WiFiClient client = server.available();
-  if( !client)
-    return;
-  // request von client lesen
-  String req = client.readStringUntil('\r');
-  Serial.print(">>> client request: ");
-  Serial.println(req);
-  client.flush();
-  // webseite zusammensetzen
-  String page = webpage1;
-  page += analogSensor;
-  page += webpage2; 
-  page += "\r\n"; 
-  // seite an client senden
-  t0 = millis();
-  client.print(page);
-  t1 = millis();
-  delay(5);
-  Serial.print(">>> page ");
-  Serial.print(" sent in ");
-  Serial.print(t1 - t0);
-  Serial.println(" ms");
+  //Retry WIFI if not Connected
+  if ((loops > RETRYCOUNTER) && !wificonnected) {
+      Serial.println("## Retry Wificonnection");
+      wificonnected = espConnectWifi();
+      loops = 0;
+  }
   
+  //for wificonnectretry
+  loops++;
 }
