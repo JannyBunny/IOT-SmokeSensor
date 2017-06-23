@@ -30,13 +30,13 @@ void loop() {
   {
     digitalWrite(redLed, HIGH);
     digitalWrite(greenLed, LOW);
-    tone(buzzer, 1000, 200);
+    digitalWrite(buzzer, HIGH);//tone(buzzer, 1000, 200);
   }
   else
   {
     digitalWrite(redLed, LOW);
     digitalWrite(greenLed, HIGH);
-    noTone(buzzer);
+    digitalWrite(buzzer,LOW);
   }
-  delay(100);
+  delay(1000); //was 100ms
 }
