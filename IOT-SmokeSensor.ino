@@ -5,6 +5,37 @@
 
 *******/
 
+/*
+ * WIFI STUFF
+ * by PK http://c.rz.hs-fulda.de/ueb09/c09-02-server.ino
+ */
+// wlan credentials
+#define mySSID "your-ssid"
+#define myPASS "your-password"
+
+#define PORT 80
+
+// server objekt
+WiFiServer server(PORT);
+
+// zum wifi verbinden
+bool espConnectWifi()
+{
+  WiFi.begin(mySSID, myPASS);
+  for(int i = 0; i < 20; i++) {
+    if(WiFi.status() == WL_CONNECTED) {
+      Serial.println("");
+      return true;
+    }  
+    Serial.print(".");
+    delay(500);
+  }
+  return false;    
+}
+
+// baudrate serial monitor
+#define BAUD 115200
+
 int redLed = D5;
 int greenLed = D2;
 int buzzer = D1;
@@ -17,8 +48,51 @@ void setup() {
   pinMode(greenLed, OUTPUT);
   pinMode(buzzer, OUTPUT);
   pinMode(smokeA0, INPUT);
-  Serial.begin(115200); //was 9600
+  Serial.begin(BAUD);
+
+//WIFI
+ unsigned long t0, t1;
+  bool c;
+  // verbinde esp mit dem wlan
+  Serial.println("### start esp simple web server\n");
+  Serial.println("### connect to wifi");
+  t0 = millis();
+  c = espConnectWifi();
+  t1 = millis();
+  if(c) {
+    Serial.print("### connected after ");
+    Serial.print(t1 - t0);
+    Serial.println(" ms\n");
+  }
+  else {
+    Serial.print("### NOT connected in ");
+    Serial.print(t1 - t0);
+    Serial.println(" ms");
+    Serial.println("### program haltet!");
+    while(1)
+      ;  
+  }
+  // Server starten und ip adresse ausgeben
+  server.begin();
+  Serial.print("### server started. ip adresse:  ");
+  Serial.println(WiFi.localIP());
+  
 }
+
+
+// webseite
+String webpage1 = "<html>\
+<head>\
+<title>esp simple webserver</title>\
+</head>\
+<body bgcolor=#cccccc text=#990000 link=#9990033 vlink=#990033>\
+<h2>ESP8266 - Simple Webserver</h2>\
+<p>GAS: ";
+// hier wird die temperatur eingefuegt
+String webpage2 = "</p>\
+
+</body>\
+</html>";
 
 void loop() {
   int analogSensor = analogRead(smokeA0);
@@ -40,4 +114,35 @@ void loop() {
     Serial.print("ALARM!");
   }
   delay(1000); //was 100ms
+
+
+
+ unsigned long t0, t1;
+  
+  // auf verbindung von client warten
+  WiFiClient client = server.available();
+  if( !client)
+    return;
+  // request von client lesen
+  String req = client.readStringUntil('\r');
+  Serial.print(">>> client request: ");
+  Serial.println(req);
+  client.flush();
+  // webseite zusammensetzen
+  temp = dht.readTemperature();
+  humi = dht.readHumidity();
+  String page = webpage1;
+  page += analogSensor;
+  page += webpage2; 
+  page += "\r\n"; 
+  // seite an client senden
+  t0 = millis();
+  client.print(page);
+  t1 = millis();
+  delay(5);
+  Serial.print(">>> page ");
+  Serial.print(" sent in ");
+  Serial.print(t1 - t0);
+  Serial.println(" ms");
+  
 }
