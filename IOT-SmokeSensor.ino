@@ -44,6 +44,7 @@ int buzzer = D1;
 int smokeA0 = A0;
 // Your threshold value
 int sensorThres = 300;
+bool wificonnecterror = false;
 
 void setup() {
   pinMode(redLed, OUTPUT);
@@ -65,14 +66,14 @@ void setup() {
     Serial.print("### connected after ");
     Serial.print(t1 - t0);
     Serial.println(" ms\n");
+    wificonnecterror=false;
   }
   else {
     Serial.print("### NOT connected in ");
     Serial.print(t1 - t0);
     Serial.println(" ms");
-    Serial.println("### program haltet!");
-    while(1)
-      ;  
+    Serial.println("### aborting WIFI connect please!");
+    wificonnecterror=true;
   }
   // Server starten und ip adresse ausgeben
   server.begin();
@@ -98,6 +99,7 @@ void loop() {
 
   Serial.print("Pin A0: ");
   Serial.println(analogSensor);
+
   // Checks if it has reached the threshold value
   if (analogSensor < sensorThres)
   {
@@ -112,8 +114,13 @@ void loop() {
     tone(buzzer, 1000, 200); //digitalWrite(buzzer, HIGH);
     Serial.print("ALARM!");
   }
+  if (wificonnecterror){
+    digitalWrite(redLed,LOW);
+  }
   delay(1000); //was 100ms
-
+  if (wificonnecterror){
+    digitalWrite(redLed,HIGH);
+  }
 
 
  unsigned long t0, t1;
