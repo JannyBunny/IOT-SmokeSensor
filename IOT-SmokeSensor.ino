@@ -5,9 +5,9 @@
 
 *******/
 
-int redLed = 12;
-int greenLed = 11;
-int buzzer = 10;
+int redLed = 3;
+int greenLed = 2;
+int buzzer = 1;
 int smokeA0 = A0; //was a5
 // Your threshold value
 int sensorThres = 400;
@@ -17,7 +17,7 @@ void setup() {
   pinMode(greenLed, OUTPUT);
   pinMode(buzzer, OUTPUT);
   pinMode(smokeA0, INPUT);
-  Serial.begin(9600);
+  Serial.begin(115200); //was 9600
 }
 
 void loop() {
