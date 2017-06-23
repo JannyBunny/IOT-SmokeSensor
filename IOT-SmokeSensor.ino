@@ -117,12 +117,13 @@ void loop() {
 
   //WIFI not Connected => LED Blinks
   if (wificonnecterror){
-    digitalWrite(redLed,HIGH);
+    digitalWrite(redLed, HIGH);
+     delay(1000); //was 100ms
+  }
+  if (wificonnecterror){
+    digitalWrite(redLed, LOW);
   }
   delay(1000); //was 100ms
-  if (wificonnecterror){
-    digitalWrite(redLed,LOW);
-  }
   
 
 
