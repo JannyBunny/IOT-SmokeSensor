@@ -8,7 +8,7 @@
 int redLed = 12;
 int greenLed = 11;
 int buzzer = 10;
-int smokeA0 = A5;
+int smokeA0 = A0; //was a5
 // Your threshold value
 int sensorThres = 400;
 
