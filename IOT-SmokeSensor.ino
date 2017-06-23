@@ -72,7 +72,7 @@ void setup() {
     Serial.print("### NOT connected in ");
     Serial.print(t1 - t0);
     Serial.println(" ms");
-    Serial.println("### aborting WIFI connect please!");
+    Serial.println("### Aborting: connect WIFI, please!");
     wificonnecterror=true;
   }
   // Server starten und ip adresse ausgeben
@@ -114,13 +114,17 @@ void loop() {
     tone(buzzer, 1000, 200); //digitalWrite(buzzer, HIGH);
     Serial.print("ALARM!");
   }
-  if (wificonnecterror){
-    digitalWrite(redLed,LOW);
-  }
-  delay(1000); //was 100ms
+
+  //WIFI not Connected => LED Blinks
   if (wificonnecterror){
     digitalWrite(redLed,HIGH);
   }
+  delay(1000); //was 100ms
+  if (wificonnecterror){
+    digitalWrite(redLed,LOW);
+  }
+  
+
 
 
  unsigned long t0, t1;
