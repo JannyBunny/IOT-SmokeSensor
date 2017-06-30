@@ -10,8 +10,8 @@
  * by PK http://c.rz.hs-fulda.de/ueb09/c09-02-server.ino
  */
 // wlan credentials
-#define mySSID "your-ssid"
-#define myPASS "your-password"
+#define mySSID "Jan"
+#define myPASS "pimmel2017"
 
 #define PORT 80
 
@@ -122,7 +122,7 @@ void loop() {
   if (!wificonnected){ // maybe && (analogSensor < sensorThres) but green goes off anyway.
     digitalWrite(redLed, LOW);
   }
-  delay(1000); //was 100ms
+  delay(100); //was 1000ms
 
  // Just do that, if WIFI is connected;
  if  (wificonnected) {
