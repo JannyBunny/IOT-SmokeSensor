@@ -215,15 +215,13 @@ void loop()
     // verbindungsnummer lesen
     cid = espSerial.parseInt();
     // led ggfs. schalten: /led/1 = an, /led/0 = aus
-  }else{
-   if(espSerial.find("/led/")) {
+    if(espSerial.find("/led/")) {
       led = espSerial.parseInt();
       if(led == 1)
-      state = HIGH;
+  state = HIGH;
       else if(led == 0)
-      state = LOW;
-    } 
-      
+  state = LOW;
+    }   
     digitalWrite(LEDPin, state);
     // webseite zusammensetzen
     String page = webpage1;
@@ -249,7 +247,6 @@ void loop()
     // senden war ok?
     ok1 = espSerial.find("SEND OK");
     t1 = millis();
-    delay(1000); //warten wir lieber etwas
     // verbindung schliessen
     String clo = "AT+CIPCLOSE=";
     clo += cid;
