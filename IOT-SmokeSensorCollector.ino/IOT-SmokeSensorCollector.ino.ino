@@ -48,12 +48,15 @@ bool espAtCommand(char *cmd, char *ans, unsigned long tout)
   // timeout fuer find() setzen
   espSerial.setTimeout(tout);
   // kommando senden
+  Serial.println("Sending command to ESP: "+(String)cmd);
   espSerial.print(cmd);
   // nach endestring ans suchen
   if(espSerial.find(ans)) {
+    Serial.println("Found answer: "+(String)ans);
     return true;    
   }
-  else {    
+  else { 
+    Serial.println("No answer from ESP :( ");   
     return false;
   }
 }
@@ -62,22 +65,36 @@ bool espAtCommand(char *cmd, char *ans, unsigned long tout)
 bool espConnect()
 {
   // verbindung zum esp pruefen
-  if( !espAtCommand("AT\r\n", "OK", 10000))
+  if( !espAtCommand("AT\r\n", "OK", 10000)) {
+    Serial.println("Got no AT - OK from ESP");
     return false;
+  }
   // verbindung zum wlan pruefen
   espSerial.print("AT+CWJAP?\r\n");
   if(espSerial.find("+CWJAP:\"")) {
     String wlan = espSerial.readStringUntil('\"');
     // bereits verbunden
     if(wlan == SSID)
-      return true;  
+    Serial.println("already connected to: "+wlan);
+    return true;  
   }
   // sonst zum wlan verbinden
-  String cmd = "AT+CWJAP=\"";
+  Serial.println("Trying to Connect...");
+  Serial.println("Listing wifi...");
+ // Serial.print(espSerial.print("AT+CWLAP\r\n"));
+//                  espSerial.print("AT+CWJAP=\"IOTwifi\",\"iotpk2017");
+//                  if (espSerial.find("\r\nOK"))
+//                    return true;
+//                  return false;
+
+//  String cmd="AT+CWJAP=\"IOTwifi\",\"iotpk2017";
+  String cmd = "AT+CWJAP=";
+  cmd += "\"";
   cmd += SSID;
   cmd += "\",\"";
   cmd += PASS;
   cmd += "\"\r\n"; 
+  //Serial.println("Connectcommand: "+cmd);
   if( !espAtCommand(cmd.c_str(), "OK", 15000))
     return false;
   return true;
@@ -154,27 +171,10 @@ void setup()
   }
   else {
     Serial.println("### could NOT get ip address");
-    Serial.println("### program haltet!");
-    while(1)
-      ;  
+//    Serial.println("### program haltet!");
+//    while(1)
+//      ;  
   }
-  // als webserver auf port 80 starten
-  t0 = millis();
-  con = espWebserver(1000);
-  t1 = millis();
-  if(con) {
-    Serial.print("### webserver started after ");
-    Serial.print(t1 - t0);
-    Serial.println(" ms\n");
-  }
-  else {
-    Serial.print("### webserver NOT started in ");
-    Serial.print(t1 - t0);
-    Serial.println(" ms");
-    Serial.println("### program haltet!");
-    while(1)
-      ;  
-  } 
 }
 
 // aufruf zaehler
