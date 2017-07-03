@@ -75,26 +75,20 @@ bool espConnect()
     String wlan = espSerial.readStringUntil('\"');
     // bereits verbunden
     if(wlan == SSID)
-    Serial.println("already connected to: "+wlan);
+    Serial.println("Already connected to: "+wlan);
     return true;  
   }
   // sonst zum wlan verbinden
   Serial.println("Trying to Connect...");
   Serial.println("Listing wifi...");
- // Serial.print(espSerial.print("AT+CWLAP\r\n"));
-//                  espSerial.print("AT+CWJAP=\"IOTwifi\",\"iotpk2017");
-//                  if (espSerial.find("\r\nOK"))
-//                    return true;
-//                  return false;
 
-//  String cmd="AT+CWJAP=\"IOTwifi\",\"iotpk2017";
   String cmd = "AT+CWJAP=";
   cmd += "\"";
   cmd += SSID;
   cmd += "\",\"";
   cmd += PASS;
   cmd += "\"\r\n"; 
-  //Serial.println("Connectcommand: "+cmd);
+
   if( !espAtCommand(cmd.c_str(), "OK", 15000))
     return false;
   return true;
@@ -108,10 +102,14 @@ bool espWebserver(unsigned long tout)
   // auf station modus einstellen
 
   n = 0;
-  if(espAtCommand("AT+CWMODE?\r\n", "+CWMODE", 500))
+  if(espAtCommand("AT+CWMODE?\r\n", "+CWMODE", 500)) {
+   Serial.println("Check CWMode"); 
     n = espSerial.parseInt();
-  if(n != 1 && !espAtCommand("AT+CWMODE=1\r\n", "OK", 500))
+  }
+  if(n != 1 && !espAtCommand("AT+CWMODE=1\r\n", "OK", 500)) {
+    Serial.println("Fehler: CWMode= "+n);
     return false;
+  }
   // mehrere verbindungen zulassen
   n = 0;
   if(espAtCommand("AT+CIPMUX?\r\n", "+CIPMUX:", 500))
@@ -175,6 +173,7 @@ void setup()
 //    while(1)
 //      ;  
   }
+  Serial.println("End of Setup");
 }
 
 // aufruf zaehler
@@ -186,11 +185,10 @@ int state = LOW;
 // webseite
 String webpage1 = "<html>\
 <head>\
-<title>esp simple webserver</title>\
+<title>Collector</title>\
 </head>\
 <body bgcolor=#cccccc text=#990000 link=#9990033 vlink=#990033>\
-<h2>ESP-01 - Simple Webserver</h2>\
-<p>Aufrufe: ";
+<h2>IOT Collector";
 // hier wird der zaehler eingefuegt
 String webpage2 = "</p>\
 <p>\
@@ -217,13 +215,15 @@ void loop()
     // verbindungsnummer lesen
     cid = espSerial.parseInt();
     // led ggfs. schalten: /led/1 = an, /led/0 = aus
-    if(espSerial.find("/led/")) {
+  }else{
+   if(espSerial.find("/led/")) {
       led = espSerial.parseInt();
       if(led == 1)
-  state = HIGH;
+      state = HIGH;
       else if(led == 0)
-  state = LOW;
-    }   
+      state = LOW;
+    } 
+      
     digitalWrite(LEDPin, state);
     // webseite zusammensetzen
     String page = webpage1;
@@ -249,6 +249,7 @@ void loop()
     // senden war ok?
     ok1 = espSerial.find("SEND OK");
     t1 = millis();
+    delay(1000); //warten wir lieber etwas
     // verbindung schliessen
     String clo = "AT+CIPCLOSE=";
     clo += cid;
