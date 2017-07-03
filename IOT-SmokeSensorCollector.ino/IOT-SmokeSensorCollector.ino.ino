@@ -112,12 +112,18 @@ bool espWebserver(unsigned long tout)
   }
   // mehrere verbindungen zulassen
   n = 0;
-  if(espAtCommand("AT+CIPMUX?\r\n", "+CIPMUX:", 500))
+  if(espAtCommand("AT+CIPMUX?\r\n", "+CIPMUX:", 500)) {
     n = espSerial.parseInt();
-  if(n != 1 && !espAtCommand("AT+CIPMUX=1\r\n", "OK", 500))
+    Serial.println("cipmux herausbekommen");
+  }
+  if(n != 1 && !espAtCommand("AT+CIPMUX=1\r\n", "OK", 500)) {
+    Serial.println("n=1&!cipmux1");
     return false;
-  if( !espAtCommand("AT+CIPSERVER=1,80\r\n", "OK", 500))
+  }
+  if( !espAtCommand("AT+CIPSERVER=1,80\r\n", "OK", 500)) {
+    Serial.println("Server Starten");
     return false; 
+  }
   return true;
 }
 
@@ -218,9 +224,9 @@ void loop()
     if(espSerial.find("/led/")) {
       led = espSerial.parseInt();
       if(led == 1)
-  state = HIGH;
+        state = HIGH;
       else if(led == 0)
-  state = LOW;
+        state = LOW;
     }   
     digitalWrite(LEDPin, state);
     // webseite zusammensetzen
