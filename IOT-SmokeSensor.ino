@@ -10,14 +10,14 @@
  * by PK http://c.rz.hs-fulda.de/ueb09/c09-02-server.ino
  */
 // wlan credentials
-#define mySSID "Jan"
-#define myPASS "pimmel2017"
+#define mySSID "IOTwifi"
+#define myPASS "iotpk2017"
 
 #define PORT 80
 
 #include <ESP8266WiFi.h>
 
-#define RETRYCOUNTER 10000 //loops
+#define RETRYCOUNTER 10 //loops;  10000+ wenn im Betrieb.
 
 // server objekt
 WiFiServer server(PORT);
@@ -45,7 +45,7 @@ int redLed = D5;
 int greenLed = D2;
 int buzzer = D1;
 int smokeA0 = A0; // Your threshold value
-int sensorThres = 300;
+int sensorThres = 400;
 bool wificonnected = false;
 
 void setup() {

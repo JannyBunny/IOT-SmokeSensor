@@ -22,8 +22,8 @@
 //   dxpin - rxd
 
 // wlan credentials
-#define SSID "Jan"
-#define PASS "pimmel2017"
+#define SSID "IOTwifi"
+#define PASS "iotpk2017"
 
 // esp-01 ueber software serial
 #include <SoftwareSerial.h>
