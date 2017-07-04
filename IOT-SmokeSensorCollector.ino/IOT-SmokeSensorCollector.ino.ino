@@ -21,6 +21,26 @@
 //   rxpin - txd
 //   dxpin - rxd
 
+/*
+   2do:
+   Controller:
+   -join wifi
+   -create server on port
+      -listening on port xyz for
+          clientid(cid=int),CurrentValue(cval=int),Alarm(alarm=bool)
+          (answering "helloclient" for call "hellomaster")
+
+   Sensor:
+   -join wifi
+   -get/set controller ip
+   -create client
+      (-scanning local subnet for master ( xyz port) transmit "hellomaster")
+        (-calculating Subnet)
+      -sending data
+        clientid(cid=int),CurrentValue(cval=int),Alarm(alarm=bool) eg. 1,234,false
+
+*/
+
 // wlan credentials
 #define SSID "IOTwifi"
 #define PASS "iotpk2017"
@@ -43,20 +63,20 @@
 SoftwareSerial espSerial = SoftwareSerial(RXPin, TXPin);
 
 // at-kommando cmd an esp senden, auf antwort ans warten, timeout tout
-bool espAtCommand(char *cmd, char *ans, unsigned long tout) 
+bool espAtCommand(char *cmd, char *ans, unsigned long tout)
 {
   // timeout fuer find() setzen
   espSerial.setTimeout(tout);
   // kommando senden
-  Serial.println("Sending command to ESP: "+(String)cmd);
+  Serial.println("Sending command to ESP: " + (String)cmd);
   espSerial.print(cmd);
   // nach endestring ans suchen
-  if(espSerial.find(ans)) {
-    Serial.println("Found answer: "+(String)ans);
-    return true;    
+  if (espSerial.find(ans)) {
+    Serial.println("Found answer: " + (String)ans);
+    return true;
   }
-  else { 
-    Serial.println("No answer from ESP :( ");   
+  else {
+    Serial.println("No answer from ESP :( ");
     return false;
   }
 }
@@ -65,18 +85,18 @@ bool espAtCommand(char *cmd, char *ans, unsigned long tout)
 bool espConnect()
 {
   // verbindung zum esp pruefen
-  if( !espAtCommand("AT\r\n", "OK", 10000)) {
+  if ( !espAtCommand("AT\r\n", "OK", 10000)) {
     Serial.println("Got no AT - OK from ESP");
     return false;
   }
   // verbindung zum wlan pruefen
   espSerial.print("AT+CWJAP?\r\n");
-  if(espSerial.find("+CWJAP:\"")) {
+  if (espSerial.find("+CWJAP:\"")) {
     String wlan = espSerial.readStringUntil('\"');
     // bereits verbunden
-    if(wlan == SSID)
-    Serial.println("Already connected to: "+wlan);
-    return true;  
+    if (wlan == SSID)
+      Serial.println("Already connected to: " + wlan);
+    return true;
   }
   // sonst zum wlan verbinden
   Serial.println("Trying to Connect...");
@@ -87,42 +107,42 @@ bool espConnect()
   cmd += SSID;
   cmd += "\",\"";
   cmd += PASS;
-  cmd += "\"\r\n"; 
+  cmd += "\"\r\n";
 
-  if( !espAtCommand(cmd.c_str(), "OK", 15000))
+  if ( !espAtCommand(cmd.c_str(), "OK", 15000))
     return false;
   return true;
 }
 
 // webserver starten
 bool espWebserver(unsigned long tout)
-{ 
+{
   int n;
-   
+
   // auf station modus einstellen
 
   n = 0;
-  if(espAtCommand("AT+CWMODE?\r\n", "+CWMODE", 500)) {
-   Serial.println("Check CWMode"); 
+  if (espAtCommand("AT+CWMODE?\r\n", "+CWMODE", 500)) {
+    Serial.println("Check CWMode");
     n = espSerial.parseInt();
   }
-  if(n != 1 && !espAtCommand("AT+CWMODE=1\r\n", "OK", 500)) {
-    Serial.println("Fehler: CWMode= "+n);
+  if (n != 1 && !espAtCommand("AT+CWMODE=1\r\n", "OK", 500)) {
+    Serial.println("Fehler: CWMode= " + n);
     return false;
   }
   // mehrere verbindungen zulassen
   n = 0;
-  if(espAtCommand("AT+CIPMUX?\r\n", "+CIPMUX:", 500)) {
+  if (espAtCommand("AT+CIPMUX?\r\n", "+CIPMUX:", 500)) {
     n = espSerial.parseInt();
     Serial.println("cipmux herausbekommen");
   }
-  if(n != 1 && !espAtCommand("AT+CIPMUX=1\r\n", "OK", 500)) {
+  if (n != 1 && !espAtCommand("AT+CIPMUX=1\r\n", "OK", 500)) {
     Serial.println("n=1&!cipmux1");
     return false;
   }
-  if( !espAtCommand("AT+CIPSERVER=1,80\r\n", "OK", 500)) {
-    Serial.println("Server Starten");
-    return false; 
+  if ( !espAtCommand("AT+CIPSERVER=1,80\r\n", "OK", 500)) {
+    Serial.println("Server Starten auf port 80");
+    return false;
   }
   return true;
 }
@@ -135,7 +155,7 @@ String espIPAddress(unsigned long tout)
   espSerial.setTimeout(tout);
   // kommando senden
   espSerial.print("AT+CIFSR\r\n");
-  if(espSerial.find("STAIP,\"")) {
+  if (espSerial.find("STAIP,\"")) {
     // ip adresse auslesen und liefern
     ipa = espSerial.readStringUntil('\"');
   }
@@ -146,7 +166,7 @@ String espIPAddress(unsigned long tout)
 void setup()
 {
   unsigned long t0, t1;
-  bool con;
+  bool con,webserver;
   // setze baudrate fuer serial und esp-01 sowie led modus
   Serial.begin(BAUD);
   espSerial.begin(BAUD);
@@ -157,7 +177,7 @@ void setup()
   t0 = millis();
   con = espConnect();
   t1 = millis();
-  if(con) {
+  if (con) {
     Serial.print("### connected after ");
     Serial.print(t1 - t0);
     Serial.println(" ms\n");
@@ -169,15 +189,19 @@ void setup()
   }
   // ip adresse lesen
   String ipa = espIPAddress(2000);
-  if(ipa.length() > 0) {
+  if (ipa.length() > 0) {
     Serial.print("### ip adresse:  ");
     Serial.println(ipa);
   }
   else {
     Serial.println("### could NOT get ip address");
-//    Serial.println("### program haltet!");
-//    while(1)
-//      ;  
+    //    Serial.println("### program haltet!");
+    //    while(1)
+    //      ;
+  }
+  if(!webserver) {
+    webserver = espWebserver( t0);
+    return true;
   }
   Serial.println("End of Setup");
 }
@@ -213,26 +237,26 @@ void loop()
   unsigned long t0, t1;
   int cid, led;
   bool ok1, ok2;
-  
+
   // auf verbindung von client warten
-  if(espSerial.available() && espSerial.find("+IPD,")) {
+  if (espSerial.available() && espSerial.find("+IPD,")) {
     ++counter;
     Serial.println(">>> connection from client");
     // verbindungsnummer lesen
     cid = espSerial.parseInt();
     // led ggfs. schalten: /led/1 = an, /led/0 = aus
-    if(espSerial.find("/led/")) {
+    if (espSerial.find("/led/")) {
       led = espSerial.parseInt();
-      if(led == 1)
+      if (led == 1)
         state = HIGH;
-      else if(led == 0)
+      else if (led == 0)
         state = LOW;
-    }   
+    }
     digitalWrite(LEDPin, state);
     // webseite zusammensetzen
     String page = webpage1;
     page += counter;
-    page += webpage2; 
+    page += webpage2;
     page += state == HIGH ? "/led/0" : "/led/1";
     page += webpage3;
     page += state == HIGH ? "Led Off" : "Led On";
@@ -248,7 +272,7 @@ void loop()
     espSerial.print(len);
     espSerial.find(">");
     // webseite senden
-    page += "\r\n"; 
+    page += "\r\n";
     espSerial.print(page);
     // senden war ok?
     ok1 = espSerial.find("SEND OK");
@@ -261,7 +285,7 @@ void loop()
     // schliessen ok?
     ok2 = espSerial.find("OK");
     // status ausgeben
-    if(ok1 && ok2) {    
+    if (ok1 && ok2) {
       Serial.print(">>> page #");
       Serial.print(counter);
       Serial.print(" sent in ");
@@ -273,7 +297,7 @@ void loop()
       Serial.print(counter);
       Serial.print(" NOT sent in ");
       Serial.print(t1 - t0);
-      Serial.print(" ms >>> send ");  
+      Serial.print(" ms >>> send ");
       Serial.print(ok1 ? "ok" : "failed");
       Serial.print(" close ");
       Serial.println(ok2 ? "ok" : "failed");
