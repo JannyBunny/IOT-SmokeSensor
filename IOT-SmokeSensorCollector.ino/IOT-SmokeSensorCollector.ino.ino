@@ -234,10 +234,6 @@ void loop()
   // auf verbindung von client warten
   if (espSerial.available() && espSerial.find("+IPD,")) {
     ++counter;
-<<<<<<< HEAD
-    Serial.println(">>> connection from client" + counter);
-    }
-=======
     Serial.println(">>> connection from client");
     // verbindungsnummer lesen
     cid = espSerial.parseInt();
@@ -300,5 +296,4 @@ void loop()
       Serial.println(ok2 ? "ok" : "failed");
     }
   }
->>>>>>> parent of 4b47a5f... reoaired+added stuff,
 }
