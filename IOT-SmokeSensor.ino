@@ -59,7 +59,7 @@ bool espConnectWifi()
   WiFi.begin(mySSID, myPASS);
   for (int i = 0; i < 20; i++) {
     if (WiFi.status() == WL_CONNECTED) {
-      Serial.println("");
+      Serial.println("Wifi Connected!");
       return true;
     }
     Serial.print(".");
@@ -91,7 +91,7 @@ void setup() {
   unsigned long t0, t1;
   // verbinde esp mit dem wlan
   Serial.println("### start esp simple web server\n");
-  Serial.println("### connect to wifi");
+  Serial.println("### connect to wifi"+(String)mySSID);
   t0 = millis();
   wificonnected = espConnectWifi();
   t1 = millis();
@@ -126,17 +126,6 @@ bool espConnectServer() {
   Serial.println("Could not connect to: "+HOST);
   return false;
 }
-
-//// webseite
-//String webpage1 = "<html>\
-//<head>\
-//<title>esp simple webserver</title>\
-//</head>\
-//<body bgcolor=#cccccc text=#990000 link=#9990033 vlink=#990033>\
-//<h2>ESP8266 - Simple Webserver</h2>\
-//<p>GAS: ";
-//// hier wird die temperatur eingefuegt
-//String webpage2 = "</p></body></html>";
 
 void loop() {
   int analogSensor = analogRead(smokeA0);
@@ -176,93 +165,92 @@ void loop() {
 
     unsigned long t0, t1;
 
-    //      // auf verbindung von client warten
-    //      WiFiClient client = server.available();
-    //      if( !client)
-    //        return;
-    //      // request von client lesen
-    //      String req = client.readStringUntil('\r');
-    //      Serial.print(">>> client request: ");
-    //      Serial.println(req);
-    //      client.flush();
-    //      // webseite zusammensetzen
-    //      String page = webpage1;
-    //      page += analogSensor;
-    //      page += webpage2;
-    //      page += "\r\n";
-    //      // seite an client senden
-    //      t0 = millis();
-    //      client.print(page);
-    //      t1 = millis();
-    //      delay(5);
-    //      Serial.print(">>> page ");
-    //      Serial.print(" sent in ");
-    //      Serial.print(t1 - t0);
-    //      Serial.println(" ms");
-
-
     // zum server verbinden
     Serial.println(">>> connect to server");
     if ( !espConnectServer()) {
-      Serial.println(">>> connection failed. :( retry in " + RETRYCOUNTER);
+      Serial.println(">>> connection failed. :( retry in " + RETRYCOUNTER); //TODO
 
     }
-    Serial.print(">>> send request, analogSensor: ");
-    Serial.println(analogSensor);
-    //  String req = "GET ";
-    //  req += PAGE;
-    //  req += analogSensor;
-    //  req += " HTTP/1.1\r\n";
-    //  req += "Host: ";
-    //  req += HOST;
-    //  req += "\r\n";
-    //  req += "Connection: close\r\n\r\n";
-    //  client.print(req);
-    client.flush();
-    String url = "/sensor"; 
-    String body;
-    String cl;
-    String  toCollector = "POST ";
-            toCollector += url+ " HTTP/1.1\r\nHost: ";
-            toCollector += HOST;
-            toCollector += "Content-Type: application/x-www-form-urlencoded\r\nContent-Length: "+cl+"\r\n\r\n";
-            body ="SensorID=" + SID;
-            body +="&value=" + analogSensor;
-            body +="&alarm=" + alarm;
-            body +="\r\n";
-            toCollector += body;
-    cl=body.length();
+    else {
+        Serial.println(">>> send Hello ");
+       
+        client.flush();
+        t0=millis();
+        String HelloServer="GET /HelloServer HTTP/1.1\r\nHost; ";
+        HelloServer+=HOST;
+        HelloServer+="\r\n";
+        
+        client.print(HelloServer);
+        client.find('[');
+        String antwort=client.readStringUntil(']');
+        t1=millis();
+        Serial.print("Server Answered for Hello: ");
+        Serial.print(antwort);
+        Serial.print(" in ");
+        Serial.println(t1-t0 +"ms");
+        
+        
+    
+        if (antwort.equals("HelloClient") ) {
+            String message="GET /"+(String)SID;
+            message+=";";
+            message+=analogSensor;
+            message+=";";
+            message+=alarm;
+            message+="HTTP/1.1\r\nHost; ";
+            t0=millis();
+            client.print(message);
+            Serial.println(message);
+            client.find('[');
+            String echo = client.readStringUntil(']');
+            t1=millis();
+            delay(100);
+            Serial.println("Server Answered in for Hello: ");
+            Serial.println(t1-t0 +"ms");
+            Serial.println(echo);
+            if (message == echo) {
+              Serial.println("OK");
+            }
+            else {
+              Serial.println("Echo NOK!!");
+            }
+        }
+        else {
+          Serial.println("\n\nServer no talkings to meeeee :( Closing...");
+          client.print("Connection: close\r\n\r\n");
+          Serial.println("...done");
+        }
+    
+//    String url = "/HelloServer"; 
+//    String body;
+//    String cl;
+//    String  toCollector = "POST ";
+//            toCollector += url+ " HTTP/1.1\r\nHost: ";
+//            toCollector += HOST;
+//            toCollector += "Content-Type: application/x-www-form-urlencoded\r\nContent-Length: "+cl+"\r\n\r\n";
+//            body ="SensorID=" + SID;
+//            body +="&value=" + analogSensor;
+//            body +="&alarm=" + alarm;
+//            body +="\r\n";
+//            toCollector += body;
+//    cl=body.length();
 
-    client.print(toCollector);
+//    client.print(toCollector);
     delay(5);
 
-    Serial.println("Body Length: "+cl);
-    Serial.println("Server"+ server );
-    Serial.println(toCollector);
-
-
-
-//  client.print(String("POST ") + url + " HTTP/1.1\r\n" +
-//               "Host: " + HOST + "\r\n" +
-//               "Content-Type: application/x-www-form-urlencoded\r\n" +
-//               "Content-Length: 13\r\n\r\n" +
-//               "SensorID=" + SID +
-//               "value=" + analogSensor +
-//               "alarm=" + alarm +
-//               "\r\n");
-
-//    Serial.println(url);
-
-
+//    Serial.println("Body Length: "+cl);
+//    Serial.println("Server"+ server );
+//    Serial.println(toCollector);
+//    
     // antwort vom server lesen und ausgeben
-    Serial.print(">>> read answer: ");
-    String ans = client.readString();
-    Serial.println(ans);
+//    Serial.print(">>> read answer: ");
+//    String ans = client.readString();
+//    Serial.println(ans);
     // warten bis zum naechsten zyklus
     Serial.print(">>> wait a while - ");
     delay(100);
   }
-
+  }
   //Retry WIFI if not Connected
   if ((loops > RETRYCOUNTER) && !wificonnected) {
     Serial.println("## Retry Wificonnection");
@@ -271,5 +259,6 @@ void loop() {
   }
 
   //for wificonnectretry
+  
   loops++;
 }

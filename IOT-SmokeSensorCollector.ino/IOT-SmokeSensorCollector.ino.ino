@@ -52,6 +52,12 @@
 // led pin
 #define LEDPin 9
 
+//für debug der Verbindung
+#define DEBUGLOOP 10000
+
+//TCP Port
+#define PORT 80
+
 // serielle esp-01 schnittstelle instantiieren
 SoftwareSerial espSerial = SoftwareSerial(RXPin, TXPin);
 
@@ -134,7 +140,8 @@ bool espWebserver(unsigned long tout)
     return false;
   }
   if ( !espAtCommand("AT+CIPSERVER=1,80\r\n", "OK", 500)) {
-    Serial.println("Server Starten auf port 80");
+    Serial.println("Server Starten auf port :");
+    Serial.print(PORT);
     return false;
   }
   return true;
@@ -200,100 +207,173 @@ void setup()
 }
 
 // aufruf zaehler
-int counter = 0;
+int counter,loops = 0;
 
 // led status
 int state = LOW;
 
-// webseite
-String webpage1 = "<html>\
-<head>\
-<title>Collector</title>\
-</head>\
-<body bgcolor=#cccccc text=#990000 link=#9990033 vlink=#990033>\
-<h2>IOT Collector";
-// hier wird der zaehler eingefuegt
-String webpage2 = "</p>\
-<p>\
-<a href=\"";
-// hier wird der link eingefuegt
-String webpage3 = "\">";
-// hier wird der linktext eingefuegt
-String webpage4 = "</a>\
-</p>\
-</body>\
-</html>";
+//messwerte 3x1 (SID),(AnalogRead),(True/False[Alarm],(time) memorymemorymemory :(
+//String messwerte[3][1];
+String messwerte;
+
+//// webseite
+//String webpage1 = "<html>\
+//<head>\
+//<title>Collector</title>\
+//</head>\
+//<body bgcolor=#cccccc text=#990000 link=#9990033 vlink=#990033>\
+//<h2>IOT Collector";
+//// hier wird der zaehler eingefuegt
+//String webpage2 = "</p>\
+//<p>\
+//<a href=\"";
+//// hier wird der link eingefuegt
+//String webpage3 = "\">";
+//// hier wird der linktext eingefuegt
+//String webpage4 = "</a>\
+//</p>\
+//</body>\
+//</html>";
 
 // main loop
 void loop()
 {
-  unsigned long t0, t1;
+  unsigned long t0, t1,t2,t3;
   int cid, led;
   bool ok1, ok2;
-
+  String Answer="[HalloClient]";
   // auf verbindung von client warten
-  if (espSerial.available() && espSerial.find("+IPD,")) {
-    ++counter;
-    Serial.println(">>> connection from client");
+  //  if (espSerial.available() && espSerial.find("+IPD,")) {
+  if (espSerial.available() ) {
+
+      cid=espSerial.parseInt();
+      String conn= espSerial.readString();
+      Serial.println(conn);
+      if (espSerial.find("/HelloServer")){
+        Serial.println("Found HelloServer");
+        String HelloC ="AT+CIPSEND=";
+        HelloC += cid;
+        HelloC += ",";
+        HelloC += Answer.length();
+        HelloC += "\r\n";
+        t0 = millis();
+        espSerial.print(HelloC);
+        Serial.println("send HelloClient");
+        
+         // laenge senden und auf prompt '>' warten
+        espSerial.find(">");
+  
+        //Antwort senden
+        Answer += "\r\n"; //Antwort senden
+        delay(5);
+        
+        espSerial.print(Answer);
+        
+        espSerial.find("SEND OK");
+        Serial.println("Send HelloClient OK!");
+        t1 = millis();
+       
+        t2=millis();
+        String data = espSerial.readString();
+        t3=millis();
+        Serial.print("Data: ");
+        Serial.println(data);
+        Serial.println(" read in: ");
+        Serial.print(t3-t2);
+        
+        Serial.println("Sending data back");
+        t2=millis();
+        espSerial.print(data);
+        t3=millis();
+        Serial.print("Data: ");
+        Serial.print(" send back in: ");
+        Serial.print(t3-t2);
+        data+=";"+millis();
+        messwerte=data;
+        // verbindung schliessen
+        String clo = "AT+CIPCLOSE=";
+        clo += cid;
+        clo += "\r\n";
+        espSerial.print(clo);
+        Serial.print(">>> page #");
+        Serial.print(counter);
+        Serial.print(" sent in ");
+        Serial.print(t1 - t0);
+        Serial.println(" ms");
+      }
+      
+//    if (espSerial.find("+IPD,HelloServer")) {    
+//    Serial.println(">>> connection from client");
+//    
+//    Serial.println(espSerial.read());
+//    
+    //}
+    
     // verbindungsnummer lesen
-    cid = espSerial.parseInt();
-    // led ggfs. schalten: /led/1 = an, /led/0 = aus
-    if (espSerial.find("/led/")) {
-      led = espSerial.parseInt();
-      if (led == 1)
-        state = HIGH;
-      else if (led == 0)
-        state = LOW;
-    }
-    digitalWrite(LEDPin, state);
-    // webseite zusammensetzen
-    String page = webpage1;
-    page += counter;
-    page += webpage2;
-    page += state == HIGH ? "/led/0" : "/led/1";
-    page += webpage3;
-    page += state == HIGH ? "Led Off" : "Led On";
-    page += webpage4;
-    // laengenkommando: at+cipsend=connection,laenge
-    String len = "AT+CIPSEND=";
-    len += cid;
-    len += ",";
-    len += page.length();
-    len += "\r\n";
-    t0 = millis();
-    // laenge senden und auf prompt '>' warten
-    espSerial.print(len);
-    espSerial.find(">");
-    // webseite senden
-    page += "\r\n";
-    espSerial.print(page);
-    // senden war ok?
-    ok1 = espSerial.find("SEND OK");
-    t1 = millis();
-    // verbindung schliessen
-    String clo = "AT+CIPCLOSE=";
-    clo += cid;
-    clo += "\r\n";
-    espSerial.print(clo);
-    // schliessen ok?
-    ok2 = espSerial.find("OK");
-    // status ausgeben
-    if (ok1 && ok2) {
-      Serial.print(">>> page #");
-      Serial.print(counter);
-      Serial.print(" sent in ");
-      Serial.print(t1 - t0);
-      Serial.println(" ms");
-    }
-    else {
-      Serial.print(">>> page #");
-      Serial.print(counter);
-      Serial.print(" NOT sent in ");
-      Serial.print(t1 - t0);
-      Serial.print(" ms >>> send ");
-      Serial.print(ok1 ? "ok" : "failed");
-      Serial.print(" close ");
-      Serial.println(ok2 ? "ok" : "failed");
-    }
+//    cid = espSerial.parseInt();
+//    // led ggfs. schalten: /led/1 = an, /led/0 = aus
+//    if (espSerial.find("/led/")) {
+//      led = espSerial.parseInt();
+//      if (led == 1)
+//        state = HIGH;
+//      else if (led == 0)
+//        state = LOW;
+//    }
+//    digitalWrite(LEDPin, state);
+//    // webseite zusammensetzen
+//    String page = webpage1;
+//    page += counter;
+//    page += webpage2;
+//    page += state == HIGH ? "/led/0" : "/led/1";
+//    page += webpage3;
+//    page += state == HIGH ? "Led Off" : "Led On";
+//    page += webpage4;
+//    // laengenkommando: at+cipsend=connection,laenge
+//    String len = "AT+CIPSEND=";
+//    len += cid;
+//    len += ",";
+//    len += page.length();
+//    len += "\r\n";
+//    t0 = millis();
+//    // laenge senden und auf prompt '>' warten
+//    espSerial.print(len);
+//    espSerial.find(">");
+//    // webseite senden
+//    page += "\r\n";
+//    espSerial.print(page);
+//    // senden war ok?
+//    ok1 = espSerial.find("SEND OK");
+//    t1 = millis();
+//    // verbindung schliessen
+//    String clo = "AT+CIPCLOSE=";
+//    clo += cid;
+//    clo += "\r\n";
+//    espSerial.print(clo);
+//    // schliessen ok?
+//    ok2 = espSerial.find("OK");
+//    // status ausgeben
+//    if (ok1 && ok2) {
+//      Serial.print(">>> page #");
+//      Serial.print(counter);
+//      Serial.print(" sent in ");
+//      Serial.print(t1 - t0);
+//      Serial.println(" ms");
+//    }
+//    else {
+//      Serial.print(">>> page #");
+//      Serial.print(counter);
+//      Serial.print(" NOT sent in ");
+//      Serial.print(t1 - t0);
+//      Serial.print(" ms >>> send ");
+//      Serial.print(ok1 ? "ok" : "failed");
+//      Serial.print(" close ");
+//      Serial.println(ok2 ? "ok" : "failed");
+//    }
   }
+//  if (loops >= DEBUGLOOP){
+//    Serial.println("no Connection from client :( ");
+//    loops=0;
+//  }
+  loops++;
+  delay(100);
 }
