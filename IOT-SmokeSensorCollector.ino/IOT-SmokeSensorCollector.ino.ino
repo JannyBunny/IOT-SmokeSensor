@@ -30,14 +30,7 @@
           clientid(cid=int),CurrentValue(cval=int),Alarm(alarm=bool)
           (answering "helloclient" for call "hellomaster")
 
-   Sensor:
-   -join wifi
-   -get/set controller ip
-   -create client
-      (-scanning local subnet for master ( xyz port) transmit "hellomaster")
-        (-calculating Subnet)
-      -sending data
-        clientid(cid=int),CurrentValue(cval=int),Alarm(alarm=bool) eg. 1,234,false
+  
 
 */
 
