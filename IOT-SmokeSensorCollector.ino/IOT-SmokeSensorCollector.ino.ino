@@ -139,6 +139,9 @@ bool espWebserver(unsigned long tout)
   }
   return true;
 }
+void sendAlarm(String msg) {
+  Serial.println("ALARM via URL");
+}
 
 // ip-adresse lesen und ausgeben
 String espIPAddress(unsigned long tout)
@@ -210,7 +213,7 @@ String webpage1 = "<html>\
 <head>\
 <title>Collector</title>\
 </head>\
-<body bgcolor=#cccccc text=#990000 link=#9990033 vlink=#990033>\
+<body bgcolor=#cfcfcf text=#990000 link=#9990033 vlink=#990033>\
 <h2>IOT Collector";
 // hier wird der zaehler eingefuegt
 String webpage2 = "</p>\
@@ -227,15 +230,17 @@ String webpage4 = "</a>\
 // main loop
 void loop()
 {
+  
   unsigned long t0, t1;
-  int cid, led;
+  int cid, led, smoke;
   bool ok1, ok2;
 
   // auf verbindung von client warten
   if (espSerial.available() && espSerial.find("+IPD,")) {
     ++counter;
     Serial.println(">>> connection from client");
-    // verbindungsnummer lesen
+    // verbindungsnummer lesen4
+  
     cid = espSerial.parseInt();
     // led ggfs. schalten: /led/1 = an, /led/0 = aus
     if (espSerial.find("/led/")) {
@@ -246,6 +251,13 @@ void loop()
         state = LOW;
     }
     digitalWrite(LEDPin, state);
+    if (espSerial.find("/sensor/alarm")) {
+      sendAlarm("ALARM");
+    }
+    if (espSerial.find("/sensor/")) {
+      smoke = espSerial.parseInt();
+    }
+
     // webseite zusammensetzen
     String page = webpage1;
     page += counter;
@@ -254,6 +266,7 @@ void loop()
     page += webpage3;
     page += state == HIGH ? "Led Off" : "Led On";
     page += webpage4;
+    page += smoke ;
     // laengenkommando: at+cipsend=connection,laenge
     String len = "AT+CIPSEND=";
     len += cid;
