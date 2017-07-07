@@ -139,9 +139,6 @@ bool espWebserver(unsigned long tout)
   }
   return true;
 }
-void sendAlarm(String msg) {
-  Serial.println("ALARM via URL");
-}
 
 // ip-adresse lesen und ausgeben
 String espIPAddress(unsigned long tout)
@@ -213,7 +210,7 @@ String webpage1 = "<html>\
 <head>\
 <title>Collector</title>\
 </head>\
-<body bgcolor=#cfcfcf text=#990000 link=#9990033 vlink=#990033>\
+<body bgcolor=#cccccc text=#990000 link=#9990033 vlink=#990033>\
 <h2>IOT Collector";
 // hier wird der zaehler eingefuegt
 String webpage2 = "</p>\
@@ -230,14 +227,78 @@ String webpage4 = "</a>\
 // main loop
 void loop()
 {
-  
   unsigned long t0, t1;
-  int cid, led, smoke;
+  int cid, led;
   bool ok1, ok2;
 
   // auf verbindung von client warten
   if (espSerial.available() && espSerial.find("+IPD,")) {
     ++counter;
+<<<<<<< HEAD
     Serial.println(">>> connection from client" + counter);
     }
+=======
+    Serial.println(">>> connection from client");
+    // verbindungsnummer lesen
+    cid = espSerial.parseInt();
+    // led ggfs. schalten: /led/1 = an, /led/0 = aus
+    if (espSerial.find("/led/")) {
+      led = espSerial.parseInt();
+      if (led == 1)
+        state = HIGH;
+      else if (led == 0)
+        state = LOW;
+    }
+    digitalWrite(LEDPin, state);
+    // webseite zusammensetzen
+    String page = webpage1;
+    page += counter;
+    page += webpage2;
+    page += state == HIGH ? "/led/0" : "/led/1";
+    page += webpage3;
+    page += state == HIGH ? "Led Off" : "Led On";
+    page += webpage4;
+    // laengenkommando: at+cipsend=connection,laenge
+    String len = "AT+CIPSEND=";
+    len += cid;
+    len += ",";
+    len += page.length();
+    len += "\r\n";
+    t0 = millis();
+    // laenge senden und auf prompt '>' warten
+    espSerial.print(len);
+    espSerial.find(">");
+    // webseite senden
+    page += "\r\n";
+    espSerial.print(page);
+    // senden war ok?
+    ok1 = espSerial.find("SEND OK");
+    t1 = millis();
+    // verbindung schliessen
+    String clo = "AT+CIPCLOSE=";
+    clo += cid;
+    clo += "\r\n";
+    espSerial.print(clo);
+    // schliessen ok?
+    ok2 = espSerial.find("OK");
+    // status ausgeben
+    if (ok1 && ok2) {
+      Serial.print(">>> page #");
+      Serial.print(counter);
+      Serial.print(" sent in ");
+      Serial.print(t1 - t0);
+      Serial.println(" ms");
+    }
+    else {
+      Serial.print(">>> page #");
+      Serial.print(counter);
+      Serial.print(" NOT sent in ");
+      Serial.print(t1 - t0);
+      Serial.print(" ms >>> send ");
+      Serial.print(ok1 ? "ok" : "failed");
+      Serial.print(" close ");
+      Serial.println(ok2 ? "ok" : "failed");
+    }
+  }
+>>>>>>> parent of 4b47a5f... reoaired+added stuff,
 }
