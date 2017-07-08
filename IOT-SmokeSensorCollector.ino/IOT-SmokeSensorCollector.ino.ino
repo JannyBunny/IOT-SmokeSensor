@@ -165,6 +165,7 @@ String espIPAddress(unsigned long tout)
 // setup
 void setup()
 {
+  digitalWrite(10, LOW);//DEBUG LED GELB
   unsigned long t0, t1;
   bool con,webserver;
   // setze baudrate fuer serial und esp-01 sowie led modus
@@ -215,25 +216,6 @@ int state = LOW;
 //messwerte 3x1 (SID),(AnalogRead),(True/False[Alarm],(time) memorymemorymemory :(
 //String messwerte[3][1];
 String messwerte;
-
-//// webseite
-//String webpage1 = "<html>\
-//<head>\
-//<title>Collector</title>\
-//</head>\
-//<body bgcolor=#cccccc text=#990000 link=#9990033 vlink=#990033>\
-//<h2>IOT Collector";
-//// hier wird der zaehler eingefuegt
-//String webpage2 = "</p>\
-//<p>\
-//<a href=\"";
-//// hier wird der link eingefuegt
-//String webpage3 = "\">";
-//// hier wird der linktext eingefuegt
-//String webpage4 = "</a>\
-//</p>\
-//</body>\
-//</html>";
 
 // main loop
 void loop()
@@ -288,6 +270,16 @@ void loop()
             }
          
           t2=millis();
+          if (espSerial.readString().equals("/OK/")) {
+              if (cid==espSerial.parseInt()) {
+                  Serial.println("SENSOR DATA READ OK!");
+                }
+                else if(espSerial.readString().equals("/NOK/")) {
+                  if (cid==espSerial.parseInt()) {
+                    Serial.println("SENSOR DATA READ NOT OK!" +cid);
+                  }
+                }
+          }
           String data = espSerial.readString();
           t3=millis();
           Serial.print("Data: ");
@@ -397,4 +389,5 @@ void loop()
   loops++;
   //espSerial.flush();
   delay(500);
+  //Serial.flush(); //BAD BAD
 }
