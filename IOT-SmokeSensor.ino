@@ -26,7 +26,7 @@
       (-scanning local subnet for master ( xyz port) transmit "hellomaster")
         (-calculating Subnet)
       -sending data
-        Sensor ID (SID=int),analogSensor(analogSensor=int),Alarm(alarm=bool) eg. 1,234,false
+        Sensor ID (SID=int),analogSensor(analogSensor=int),Alarm(alarm=bool) eg. 1;234;0
 
 
    WIFI STUFF
@@ -42,7 +42,7 @@
 
 //connect to host
 #define HOST server
-IPAddress server(192, 168, 88, 252);
+IPAddress server = IPAddress(192, 168, 88, 252);
 
 #define SID 1 //SensorID
 
@@ -163,62 +163,65 @@ void loop() {
   // Just do that, if WIFI is connected;
   if  (wificonnected) {
 
-    unsigned long t0, t1;
-
-    // zum server verbinden
-    Serial.println(">>> connect to server");
-    if ( !espConnectServer()) {
-      Serial.println(">>> connection failed. :( retry in " + RETRYCOUNTER); //TODO
-
-    }
-    else {
-        Serial.println(">>> send Hello ");
-       
-        client.flush();
-        t0=millis();
-        String HelloServer="GET /HelloServer HTTP/1.1\r\nHost; ";
-        HelloServer+=HOST;
-        HelloServer+="\r\n";
-        
-        client.print(HelloServer);
-        client.find('[');
-        String antwort=client.readStringUntil(']');
-        t1=millis();
-        Serial.print("Server Answered for Hello: ");
-        Serial.print(antwort);
-        Serial.print(" in ");
-        Serial.println(t1-t0 +"ms");
-        
-        
-    
-        if (antwort.equals("HelloClient") ) {
-            String message="GET /"+(String)SID;
-            message+=";";
-            message+=analogSensor;
-            message+=";";
-            message+=alarm;
-            message+="HTTP/1.1\r\nHost; ";
+      unsigned long t0, t1;
+  
+      // zum server verbinden
+      Serial.println(">>> connect to server");
+      if ( !espConnectServer()) {
+        Serial.println(">>> connection failed. :( retry in " + RETRYCOUNTER); //TODo
+        espConnectServer();
+       } //nicht connected    
+      if(espConnectServer()) {  
+            Serial.println(">>> send Hello  ");
             t0=millis();
-            client.print(message);
-            Serial.println(message);
+            String HelloServer="GET /HelloServer/"+(String)SID+"/"+analogSensor+"/"+alarm+" HTTP/1.1\r\nHost: ";
+            HelloServer+=HOST.toString().c_str(); // We Have to get an correct IP here, bc IPAdress is an array (:
+            HelloServer+="\r\n";
+            
+            client.print(HelloServer);
+            Serial.println(HelloServer);
+    //        Serial.println(client.read());
+    //        delay(500);
             client.find('[');
-            String echo = client.readStringUntil(']');
+            String antwort=client.readStringUntil(']');
             t1=millis();
-            delay(100);
-            Serial.println("Server Answered in for Hello: ");
+            Serial.print("Server Answered for Hello: ");
+            Serial.print(antwort);
+            Serial.print(" in ");
             Serial.println(t1-t0 +"ms");
-            Serial.println(echo);
-            if (message == echo) {
-              Serial.println("OK");
-            }
-            else {
-              Serial.println("Echo NOK!!");
-            }
+            
+            
+        
+            if (antwort.equals(HelloServer) ) {
+                String message="GET /OK/"+(String)SID+" HTTP/1.1\r\nHost: ";
+                       message+=HOST.toString().c_str(); // We Have to get an correct IP here, bc IPAdress is an array (:
+                       message+="\r\n";
+                t0=millis();
+                client.print(message);
+                Serial.println(message);
+                Serial.println("Data OK ");
+                Serial.println(t1-t0 +"ms");
+                client.flush();
+              }
+             else {
+                  Serial.println("Echo NOK!!");
+                  String message="GET /NOK/"+(String)SID+" HTTP/1.1\r\nHost: ";
+                         message+=HOST.toString().c_str(); // We Have to get an correct IP here, bc IPAdress is an array (:
+                         message+="\r\n";
+                 t0=millis();
+                 client.print(message);
+                 Serial.println(message);
+                 Serial.println("Data OK ");
+                 Serial.println(t1-t0 +"ms");
+                 client.flush();
+                }
         }
         else {
           Serial.println("\n\nServer no talkings to meeeee :( Closing...");
           client.print("Connection: close\r\n\r\n");
+          client.flush();
           Serial.println("...done");
+          
         }
     
 //    String url = "/HelloServer"; 
@@ -238,19 +241,9 @@ void loop() {
 //    client.print(toCollector);
     delay(5);
 
-//    Serial.println("Body Length: "+cl);
-//    Serial.println("Server"+ server );
-//    Serial.println(toCollector);
-//    
-    // antwort vom server lesen und ausgeben
-//    Serial.print(">>> read answer: ");
-//    String ans = client.readString();
-//    Serial.println(ans);
-    // warten bis zum naechsten zyklus
-    Serial.print(">>> wait a while - ");
-    delay(100);
+    
   }
-  }
+  
   //Retry WIFI if not Connected
   if ((loops > RETRYCOUNTER) && !wificonnected) {
     Serial.println("## Retry Wificonnection");
@@ -260,5 +253,7 @@ void loop() {
 
   //for wificonnectretry
   
+  Serial.print(">>> wait a while - ");
+  delay(1000);
   loops++;
 }

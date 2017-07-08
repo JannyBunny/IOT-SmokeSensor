@@ -241,65 +241,67 @@ void loop()
   unsigned long t0, t1,t2,t3;
   int cid, led;
   bool ok1, ok2;
-  String Answer="[HalloClient]";
+  String AnswerHS="[HelloClient]";
+  
   // auf verbindung von client warten
-  //  if (espSerial.available() && espSerial.find("+IPD,")) {
-  if (espSerial.available() ) {
+    if (espSerial.available() && espSerial.find("+IPD,")) {
+//  if (espSerial.available()  ) {
 
       cid=espSerial.parseInt();
-      String conn= espSerial.readString();
-      Serial.println(conn);
+      Serial.println("client id="+cid);
+//      String conn= espSerial.readString();
+//      Serial.println(conn);
       if (espSerial.find("/HelloServer")){
-        Serial.println("Found HelloServer");
-        String HelloC ="AT+CIPSEND=";
-        HelloC += cid;
-        HelloC += ",";
-        HelloC += Answer.length();
-        HelloC += "\r\n";
-        t0 = millis();
-        espSerial.print(HelloC);
-        Serial.println("send HelloClient");
-        
-         // laenge senden und auf prompt '>' warten
-        espSerial.find(">");
-  
-        //Antwort senden
-        Answer += "\r\n"; //Antwort senden
-        delay(5);
-        
-        espSerial.print(Answer);
-        
-        espSerial.find("SEND OK");
-        Serial.println("Send HelloClient OK!");
-        t1 = millis();
-       
-        t2=millis();
-        String data = espSerial.readString();
-        t3=millis();
-        Serial.print("Data: ");
-        Serial.println(data);
-        Serial.println(" read in: ");
-        Serial.print(t3-t2);
-        
-        Serial.println("Sending data back");
-        t2=millis();
-        espSerial.print(data);
-        t3=millis();
-        Serial.print("Data: ");
-        Serial.print(" send back in: ");
-        Serial.print(t3-t2);
-        data+=";"+millis();
-        messwerte=data;
-        // verbindung schliessen
-        String clo = "AT+CIPCLOSE=";
-        clo += cid;
-        clo += "\r\n";
-        espSerial.print(clo);
-        Serial.print(">>> page #");
-        Serial.print(counter);
-        Serial.print(" sent in ");
-        Serial.print(t1 - t0);
-        Serial.println(" ms");
+          Serial.println("Found HelloServer");
+          
+          String HelloC ="AT+CIPSEND=";
+          HelloC += cid;
+          HelloC += ",";
+          HelloC += AnswerHS.length();
+          HelloC += "\r\n";
+          t0 = millis();
+          espSerial.print(HelloC);
+          Serial.println("send HelloClient");
+          
+           // laenge senden und auf prompt '>' warten
+          espSerial.find(">");
+    
+          //Antwort senden
+          AnswerHS += "\r\n"; //Antwort senden
+          espSerial.print(AnswerHS);
+          
+          if (espSerial.find("SEND OK")) {
+              Serial.println("Send HelloClient OK!");
+              t1 = millis();
+          }
+         
+          t2=millis();
+          String data = espSerial.readString();
+          t3=millis();
+          Serial.print("Data: ");
+          Serial.println(data);
+          Serial.println(" read in: ");
+          Serial.print(t3-t2);
+          
+          Serial.println("Sending data back");
+          t2=millis();
+          espSerial.print(data);
+          t3=millis();
+          Serial.print("Data: ");
+          Serial.print(" send back in: ");
+          Serial.print(t3-t2);
+          data+=";"+millis();
+          messwerte=data;
+          // verbindung schliessen
+          String clo = "AT+CIPCLOSE=";
+          clo += cid;
+          clo += "\r\n";
+          espSerial.print(clo);
+          Serial.print(">>> page #");
+          Serial.print(counter);
+          Serial.print(" sent in ");
+          Serial.print(t1 - t0);
+          Serial.println(" ms");
       }
       
 //    if (espSerial.find("+IPD,HelloServer")) {    
