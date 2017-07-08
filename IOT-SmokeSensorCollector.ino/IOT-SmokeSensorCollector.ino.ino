@@ -239,41 +239,53 @@ String messwerte;
 void loop()
 {
   unsigned long t0, t1,t2,t3;
-  int cid, led;
-  bool ok1, ok2;
-  String AnswerHS="[HelloClient]";
+  int cid, led, sid, analog;
+  bool ok1, ok2, alarm;
+  
   
   // auf verbindung von client warten
     if (espSerial.available() && espSerial.find("+IPD,")) {
 //  if (espSerial.available()  ) {
 
-      cid=espSerial.parseInt();
-      Serial.println("client id="+cid);
+        cid=espSerial.parseInt();
+        Serial.println("client id="+cid);
 //      String conn= espSerial.readString();
 //      Serial.println(conn);
-      if (espSerial.find("/HelloServer")){
-          Serial.println("Found HelloServer");
+        if (espSerial.find("/HelloServer")){
+            Serial.println("Found HelloServer");
+            sid=espSerial.parseInt();
+            espSerial.find("/");
+            analog=espSerial.parseInt();
+            espSerial.find("/");
+            alarm=espSerial.parseInt();
+            Serial.println(sid+analog+alarm);
+            String AnswerHS="[HelloClient/";
+                    AnswerHS+=sid;
+                    AnswerHS+="/";
+                    AnswerHS+=analog;
+                    AnswerHS+="/";
+                    AnswerHS+=alarm;
+                    AnswerHS+="]";
+            String HelloC ="AT+CIPSEND=";
+            HelloC += cid;
+            HelloC += ",";
+            HelloC += AnswerHS.length();
+            HelloC += "\r\n";
+            t0 = millis();
+            espSerial.print(HelloC);
+            Serial.println("send HelloClient"+AnswerHS);
+            
+             // laenge senden und auf prompt '>' warten
+            espSerial.find(">");
+      
+            //Antwort senden
+            AnswerHS += "\r\n"; //Antwort senden
+            espSerial.print(AnswerHS);
           
-          String HelloC ="AT+CIPSEND=";
-          HelloC += cid;
-          HelloC += ",";
-          HelloC += AnswerHS.length();
-          HelloC += "\r\n";
-          t0 = millis();
-          espSerial.print(HelloC);
-          Serial.println("send HelloClient");
-          
-           // laenge senden und auf prompt '>' warten
-          espSerial.find(">");
-    
-          //Antwort senden
-          AnswerHS += "\r\n"; //Antwort senden
-          espSerial.print(AnswerHS);
-          
-          if (espSerial.find("SEND OK")) {
-              Serial.println("Send HelloClient OK!");
-              t1 = millis();
-          }
+            if (espSerial.find("SEND OK")) {
+                Serial.println("Send HelloClient OK!");
+                t1 = millis();
+            }
          
           t2=millis();
           String data = espSerial.readString();
@@ -376,6 +388,10 @@ void loop()
 //    Serial.println("no Connection from client :( ");
 //    loops=0;
 //  }
+  if (alarm) {
+    state= HIGH;
+  }
+  digitalWrite(LEDPin, state);
   loops++;
   delay(100);
 }

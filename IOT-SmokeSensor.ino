@@ -26,7 +26,7 @@
       (-scanning local subnet for master ( xyz port) transmit "hellomaster")
         (-calculating Subnet)
       -sending data
-        Sensor ID (SID=int),analogSensor(analogSensor=int),Alarm(alarm=bool) eg. 1;234;0
+        /HelloServer/ Sensor ID (SID=int),analogSensor(analogSensor=int),Alarm(alarm=bool) eg. /HelloServer/1/234/0
 
 
    WIFI STUFF
@@ -42,7 +42,7 @@
 
 //connect to host
 #define HOST server
-IPAddress server = IPAddress(192, 168, 88, 252);
+IPAddress server = IPAddress(192, 168, 88, 253);
 
 #define SID 1 //SensorID
 
@@ -192,7 +192,7 @@ void loop() {
             
             
         
-            if (antwort.equals(HelloServer) ) {
+            if (antwort.equals("HelloClient/"+(String)SID+"/"+analogSensor+"/"+alarm) ) {
                 String message="GET /OK/"+(String)SID+" HTTP/1.1\r\nHost: ";
                        message+=HOST.toString().c_str(); // We Have to get an correct IP here, bc IPAdress is an array (:
                        message+="\r\n";
@@ -239,7 +239,6 @@ void loop() {
 //    cl=body.length();
 
 //    client.print(toCollector);
-    delay(5);
 
     
   }
@@ -253,7 +252,7 @@ void loop() {
 
   //for wificonnectretry
   
-  Serial.print(">>> wait a while - ");
+  Serial.print(">>> wait a while - 1s ");
   delay(1000);
   loops++;
 }
