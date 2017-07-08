@@ -314,6 +314,7 @@ void loop()
           Serial.print(" sent in ");
           Serial.print(t1 - t0);
           Serial.println(" ms");
+          espSerial.flush();
       }
       
 //    if (espSerial.find("+IPD,HelloServer")) {    
@@ -392,6 +393,8 @@ void loop()
     state= HIGH;
   }
   digitalWrite(LEDPin, state);
+  digitalWrite(10, HIGH);//DEBUG LED GELB
   loops++;
-  delay(100);
+  //espSerial.flush();
+  delay(500);
 }
