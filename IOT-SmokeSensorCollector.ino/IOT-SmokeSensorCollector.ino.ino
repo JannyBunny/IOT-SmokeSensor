@@ -20,7 +20,9 @@
 //     gnd - gnd
 //   rxpin - txd
 //   dxpin - rxd
-
+/*
+ * to FIX Serial reset: 100µF Capacitor between RESET and Ground or Cut the solderbridge "REST ON" ( no:( )
+ */
 /*
    2do:
    Controller:
