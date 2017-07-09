@@ -1,3 +1,66 @@
+#include "RedkeaWiFi.h"
+
+char ssid[] = "SSID";
+char pass[] = "PASS";
+char deviceID[] = "-KockqvTbvZYYgXmgVg1";
+
+RedkeaWiFi redkea;
+
+/**************************************************************************************************
+Use the following snippet if you want to send data from your device to a widget.
+Replace "mySenderFunction" with the name of the user function you chose when you created the widget.
+(Don't change "widgetID".)
+***************************************************************************************************/
+
+
+
+REDKEA_SENDER(getValue, widgetID)
+{
+    // use the following lines to send a string to a text widget
+    
+     String str = "asdf"; // assign the string you want to display 
+     redkea.sendToTextWidget(widgetID, str);
+}
+REDKEA_REGISTER_SENDER(redkea, getValue)
+
+REDKEA_SENDER(getAnalog, widgetID)
+{
+    // use the following lines to send a string to a text widget
+    
+     String str = "blah"; // assign the string you want to display 
+     redkea.sendToTextWidget(widgetID, str);
+}
+REDKEA_REGISTER_SENDER(redkea, getAnalog)
+
+
+
+/**************************************************************************************************
+Use the following snippet if you want to receive data from a widget.
+Replace "myReceiverFunction" with the name of the user function you chose when you created the widget.
+(Don't change "args.")
+***************************************************************************************************/
+
+/*
+
+REDKEA_RECEIVER(myReceiverFunction, args)
+{
+  // use this line to receive a value from a toggle widget
+    // bool toggleState = redkea.readFromToggleWidget(args);
+  
+  
+    // use this line to receive a value from a touch widget
+    // bool touchState = redkea.readFromTouchWidget(args);
+
+
+    // use this line to receive a value from a slider widget
+    // int sliderValue = redkea.readFromSliderWidget(args);
+}
+REDKEA_REGISTER_RECEIVER(redkea, myReceiverFunction)
+
+*/
+
+
+
 // demo06-esp-webserver.ino
 // klin, 30.05.2017
 //
@@ -20,6 +83,7 @@
 //     gnd - gnd
 //   rxpin - txd
 //   dxpin - rxd
+
 /*
  * to FIX Serial reset: 100µF Capacitor between RESET and Ground or Cut the solderbridge "REST ON" ( no:( )
  */
@@ -31,6 +95,15 @@
       -listening on port xyz for
           clientid(cid=int),CurrentValue(cval=int),Alarm(alarm=bool)
           (answering "helloclient" for call "hellomaster")
+
+    Daten speichern
+
+    redkea app einbinden
+    datenexportfunktion für Redkea APP
+    
+    Sensor daten senden erst alle 10sek
+    
+    modularisierung
 
   
 
@@ -164,9 +237,17 @@ String espIPAddress(unsigned long tout)
   return ipa;
 }
 
+
+//messwerte 3x1 (SID),(AnalogRead),(True/False[Alarm],(time) memorymemorymemory :(
+//String messwerte[3][1];
+String messwerte;
+
 // setup
 void setup()
 {
+    //REDKEA STUFF
+    redkea.begin(ssid, pass, deviceID);
+  
   digitalWrite(10, LOW);//DEBUG LED GELB
   unsigned long t0, t1;
   bool con,webserver;
@@ -214,10 +295,6 @@ int counter,loops = 0;
 
 // led status
 int state = LOW;
-
-//messwerte 3x1 (SID),(AnalogRead),(True/False[Alarm],(time) memorymemorymemory :(
-//String messwerte[3][1];
-String messwerte;
 
 // main loop
 void loop()
@@ -275,6 +352,7 @@ void loop()
           if (espSerial.readString().equals("/OK/")) {
               if (cid==espSerial.parseInt()) {
                   Serial.println("SENSOR DATA READ OK!");
+                  messwerte=analog;
                 }
                 else if(espSerial.readString().equals("/NOK/")) {
                   if (cid==espSerial.parseInt()) {
@@ -392,4 +470,7 @@ void loop()
   //espSerial.flush();
   delay(500);
   //Serial.flush(); //BAD BAD
+  
+  //redkea Stuff
+  redkea.loop();
 }
