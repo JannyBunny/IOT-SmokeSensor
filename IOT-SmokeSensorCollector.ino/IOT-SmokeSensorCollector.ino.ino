@@ -1,71 +1,6 @@
-#include "RedkeaWiFi.h"
-
-char ssid[] = "SSID";
-char pass[] = "PASS";
-char deviceID[] = "-KockqvTbvZYYgXmgVg1";
-
-RedkeaWiFi redkea;
-
-/**************************************************************************************************
-Use the following snippet if you want to send data from your device to a widget.
-Replace "mySenderFunction" with the name of the user function you chose when you created the widget.
-(Don't change "widgetID".)
-***************************************************************************************************/
-
-
-
-REDKEA_SENDER(getValue, widgetID)
-{
-    // use the following lines to send a string to a text widget
-    
-     String str = "asdf"; // assign the string you want to display 
-     redkea.sendToTextWidget(widgetID, str);
-}
-REDKEA_REGISTER_SENDER(redkea, getValue)
-
-REDKEA_SENDER(getAnalog, widgetID)
-{
-    // use the following lines to send a string to a text widget
-    
-     String str = "blah"; // assign the string you want to display 
-     redkea.sendToTextWidget(widgetID, str);
-}
-REDKEA_REGISTER_SENDER(redkea, getAnalog)
-
-
-
-/**************************************************************************************************
-Use the following snippet if you want to receive data from a widget.
-Replace "myReceiverFunction" with the name of the user function you chose when you created the widget.
-(Don't change "args.")
-***************************************************************************************************/
-
-/*
-
-REDKEA_RECEIVER(myReceiverFunction, args)
-{
-  // use this line to receive a value from a toggle widget
-    // bool toggleState = redkea.readFromToggleWidget(args);
-  
-  
-    // use this line to receive a value from a touch widget
-    // bool touchState = redkea.readFromTouchWidget(args);
-
-
-    // use this line to receive a value from a slider widget
-    // int sliderValue = redkea.readFromSliderWidget(args);
-}
-REDKEA_REGISTER_RECEIVER(redkea, myReceiverFunction)
-
-*/
-
-
-
+//Inspiriert von:
 // demo06-esp-webserver.ino
 // klin, 30.05.2017
-//
-// der sketch realisiert einen einfachen webserver
-// mit aufrufzaehler und link zum schalten einer led
 //
 // kommunikation mit esp-01 ueber software serial
 // das esp-01-modul ist ueber den esp-adapter angeschlossen
@@ -244,10 +179,7 @@ String messwerte;
 
 // setup
 void setup()
-{
-    //REDKEA STUFF
-    redkea.begin(ssid, pass, deviceID);
-  
+{ 
   digitalWrite(10, LOW);//DEBUG LED GELB
   unsigned long t0, t1;
   bool con,webserver;
@@ -470,7 +402,4 @@ void loop()
   //espSerial.flush();
   delay(500);
   //Serial.flush(); //BAD BAD
-  
-  //redkea Stuff
-  redkea.loop();
 }
