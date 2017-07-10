@@ -75,16 +75,19 @@ int loops = 0;
 int redLed = D5;
 int greenLed = D2;
 int buzzer = D1;
-int smokeA0 = A0;
-int sensorThres = 400;// 400ppm
+#define SMOKEA0 A0 // Sensor Anschluss
+#define SENSORTHRES 400 //400ppm
 bool wificonnected = false;
 bool alarm = false;
+bool didaresend=false;
+
+#define RESENDDATATIMEINMILLIS 10 //10s
 
 void setup() {
   pinMode(redLed, OUTPUT);
   pinMode(greenLed, OUTPUT);
   pinMode(buzzer, OUTPUT);
-  pinMode(smokeA0, INPUT);
+  pinMode(SMOKEA0, INPUT);
   Serial.begin(BAUD);
 
   //WIFI
@@ -111,6 +114,7 @@ void setup() {
   //  Serial.print("### server started. ip adresse:  ");
   Serial.println(WiFi.localIP());
 
+
 } //Setup
 
 // zum server verbinden
@@ -127,19 +131,37 @@ bool espConnectServer() {
   return false;
 }
 
-void loop() {
-  int analogSensor = analogRead(smokeA0);
+bool resendDataToServer() {
+    //programmlaufzeit aktualisieren
+    if(millis()%RESENDDATATIMEINMILLIS==0)
+      return true;
+    return false;
+}
 
-  Serial.print("Pin A0: ");
-  Serial.println(analogSensor);
-
+bool checkAlarm(int SensorReading, int alarmValue) {
   // Checks if it has reached the threshold value
-  if (analogSensor < sensorThres)
+  if (SensorReading < alarmValue)
+  {
+    return false;
+  }
+  else
+  {
+    return true;
+  }
+}
+
+void loop() {
+
+  //Smoke detect
+   int analogSensor = analogRead(SMOKEA0);
+    Serial.print("Sensor Analog SMOKEA0: ");
+    Serial.println(analogSensor);
+   alarm=checkAlarm(analogSensor, SENSORTHRES);
+   if (analogSensor < SENSORTHRES) 
   {
     digitalWrite(redLed, LOW);
     digitalWrite(greenLed, HIGH);
     digitalWrite(buzzer, LOW);
-    alarm = false;
   }
   else
   {
@@ -147,13 +169,13 @@ void loop() {
     digitalWrite(greenLed, LOW);
     tone(buzzer, 1000, 200); //digitalWrite(buzzer, HIGH);
     Serial.print("ALARM!");
-    alarm = true;
+    alarm=true;
   }
-
+ 
   //WIFI not Connected => LED Blinks
   if (!wificonnected) {
     digitalWrite(redLed, HIGH);
-    delay(1000); //was 100ms
+    delay(100); //was 100ms
   }
   if (!wificonnected) { // maybe && (analogSensor < sensorThres) but green goes off anyway.
     digitalWrite(redLed, LOW);
@@ -168,61 +190,71 @@ void loop() {
       // zum server verbinden
       Serial.println(">>> connect to server");
       if ( !espConnectServer()) {
-        Serial.println(">>> connection failed. :( retry in " + RETRYCOUNTER); //TODo
-        espConnectServer();
+        Serial.println(">>> connection failed. :( retry");
+          if (loops>= RETRYCOUNTER) {
+            espConnectServer();
+          }
        } //nicht connected    
-      if(espConnectServer()) {  
+
+      
+      if( (espConnectServer() && resendDataToServer() ) || alarm ) {  //alle 10s, wenn kein alarm ist
+            didaresend=true;
             Serial.println(">>> send Hello  ");
             t0=millis();
-            String HelloServer="GET /HelloServer/"+(String)SID+"/"+analogSensor+"/"+alarm+" HTTP/1.1\r\nHost: ";
+            String HelloServer="GET [HelloServer/"+(String)SID+"/"+analogSensor+"/"+alarm+" HTTP/1.1\r\nHost: ";
             HelloServer+=HOST.toString().c_str(); // We Have to get an correct IP here, bc IPAdress is an array (:
-            HelloServer+="\r\n";
+            HelloServer+="]\r\n";
             
             client.print(HelloServer);
             Serial.println(HelloServer);
     //        Serial.println(client.read());
     //        delay(500);
-            client.find('[');
-            String antwort=client.readStringUntil(']');
-            t1=millis();
-            Serial.print("Server Answered for Hello: ");
-            Serial.print(antwort);
-            Serial.print(" in ");
-            Serial.println(t1-t0 +"ms");
-            
-            
+    //        Serial.println("Es kommt: "client.peek());
+            if(client.peek() < 0) {
+                Serial.println("\n\nServer is not talking to me :( Closing...");
+                client.print("Connection: close\r\n\r\n");
+                client.flush();
+                Serial.println("...done");
         
-            if (antwort.equals("HelloClient/"+(String)SID+"/"+analogSensor+"/"+alarm) ) {
-                String message="GET /OK/"+(String)SID+" HTTP/1.1\r\nHost: ";
-                       message+=HOST.toString().c_str(); // We Have to get an correct IP here, bc IPAdress is an array (:
-                       message+="\r\n";
-                t0=millis();
-                client.print(message);
-                Serial.println(message);
-                Serial.println("Data OK ");
-                Serial.println(t1-t0 +"ms");
+            } 
+            else {
+            
+              client.find('[');
+              String antwort=client.readStringUntil(']');
+              t1=millis();
+              Serial.print("Server Answered for Hello: ");
+              Serial.print(antwort);
+              Serial.print(" in ");
+              Serial.println(t1-t0 +"ms");
+              
+  
+              if (antwort.equals("HelloClient/"+(String)SID+"/"+analogSensor+"/"+alarm)) {
+                  String message="GET [OK/"+(String)SID+" HTTP/1.1\r\nHost: ";
+                         message+=HOST.toString().c_str(); // We Have to get an correct IP here, bc IPAdress is an array (:
+                         message+="]\r\n";
+                  t0=millis();
+                  client.print(message);
+                  Serial.println(message);
+                  Serial.println("Data OK ");
+                  Serial.println(t1-t0 +"ms");
+                }
+              else {
+                    Serial.println("Echo NOT OK!!");
+                    String message="GET [NOK/"+(String)SID+" HTTP/1.1\r\nHost: ";
+                           message+=HOST.toString().c_str(); // We Have to get an correct IP here, bc IPAdress is an array (:
+                           message+="]\r\n";
+                   t0=millis();
+                   client.print(message);
+                   Serial.println(message);
+                   Serial.println("Data NOT OK!");
+                   Serial.println(t1-t0 +"ms");
+             
+                }
                 client.flush();
               }
-             else {
-                  Serial.println("Echo NOK!!");
-                  String message="GET /NOK/"+(String)SID+" HTTP/1.1\r\nHost: ";
-                         message+=HOST.toString().c_str(); // We Have to get an correct IP here, bc IPAdress is an array (:
-                         message+="\r\n";
-                 t0=millis();
-                 client.print(message);
-                 Serial.println(message);
-                 Serial.println("Data OK ");
-                 Serial.println(t1-t0 +"ms");
-                 client.flush();
-                }
-        }
-        else {
-          Serial.println("\n\nServer no talkings to meeeee :( Closing...");
-          client.print("Connection: close\r\n\r\n");
-          client.flush();
-          Serial.println("...done");
-          
-        }
+              
+      }
+        
     
 //    String url = "/HelloServer"; 
 //    String body;
@@ -248,11 +280,9 @@ void loop() {
     Serial.println("## Retry Wificonnection");
     wificonnected = espConnectWifi();
     loops = 0;
-  }
-
-  //for wificonnectretry
+  }//for wificonnectretry
   
-  Serial.print(">>> wait a while - 1s ");
+  Serial.println(">>> wait a while - 1s ");
   delay(1000);
   loops++;
 }

@@ -173,9 +173,31 @@ String espIPAddress(unsigned long tout)
 }
 
 
+//Hau Webseite mit allen Werten (SensorID,AnalogInput,Alarm) raus
+String printWebsite(int SensorID,int AnalogInput,int Alarm) {
+    String website="<html><head><title></title></head><body><h1>Sensor Reading</h1><p> SensorID: | AnalogInput:  | Alarm?</p><p>";
+    website+=SensorID;
+    website+="            | ";
+    website+=AnalogInput;
+    website+="            | ";
+    if (Alarm) {
+      website+="ALARM!!!";
+    }
+    else {
+      website+="OK";
+    }
+    website+="</p></body></html>";
+    return website;
+}
+
+//länge der Daten
+#define DATA_ARRAYSIZE 3
 //messwerte 3x1 (SID),(AnalogRead),(True/False[Alarm],(time) memorymemorymemory :(
 //String messwerte[3][1];
-String messwerte;
+int messwerte[DATA_ARRAYSIZE][3];
+//"länge" des arrays, wo er vorher wieder anfängt neu reinzuschreiben
+int mess_len=0;
+
 
 // setup
 void setup()
@@ -234,17 +256,22 @@ void loop()
   unsigned long t0, t1,t2,t3;
   int cid, led, sid, analog;
   bool ok1, ok2, alarm;
-  
-  
+  String AnswerHS,AnswerData;
+  for (int i=0;i<mess_len;i++) {
+      Serial.println(i);
+      AnswerData=printWebsite(messwerte[i][0],messwerte[i][1],messwerte[i][2]); 
+      
+    }
   // auf verbindung von client warten
+    //Serial.println(espSerial.peek() );
     if (espSerial.available() && espSerial.find("+IPD,")) {
-//  if (espSerial.available()  ) {
-
+//        Serial.println(espSerial.peek() );
         cid=espSerial.parseInt();
+        
         Serial.println("client id="+cid);
-//      String conn= espSerial.readString();
-//      Serial.println(conn);
-        if (espSerial.find("/HelloServer")){
+//        String conn=espSerial.readString();
+//        Serial.println(conn);
+       if (espSerial.find("[HelloServer")){
             Serial.println("Found HelloServer");
             sid=espSerial.parseInt();
             espSerial.find("/");
@@ -252,13 +279,13 @@ void loop()
             espSerial.find("/");
             alarm=espSerial.parseInt();
             Serial.println(sid+analog+alarm);
-            String AnswerHS="[HelloClient/";
+                    AnswerHS="[[HelloClient/";
                     AnswerHS+=sid;
                     AnswerHS+="/";
                     AnswerHS+=analog;
                     AnswerHS+="/";
                     AnswerHS+=alarm;
-                    AnswerHS+="]";
+                    AnswerHS+="]]";
             String HelloC ="AT+CIPSEND=";
             HelloC += cid;
             HelloC += ",";
@@ -280,34 +307,42 @@ void loop()
                 t1 = millis();
             }
          
-          t2=millis();
-          if (espSerial.readString().equals("/OK/")) {
-              if (cid==espSerial.parseInt()) {
+            t2=millis();
+            Serial.println(espSerial.readString());
+            if (espSerial.find("[OK/")) {
+                  sid=espSerial.parseInt();
                   Serial.println("SENSOR DATA READ OK!");
-                  messwerte=analog;
+                  if (mess_len>=DATA_ARRAYSIZE){
+                      mess_len=0;
+                      Serial.println("Array is full. beginning at 0");
+                  }
+                  messwerte[mess_len][0]=sid;
+                  messwerte[mess_len][1]=analog;
+                  messwerte[mess_len][2]=alarm;
+                  //messwerte[mess_len][3]=; // reserved for timestamp
+                  Serial.println("Written Data to array");
                 }
-                else if(espSerial.readString().equals("/NOK/")) {
-                  if (cid==espSerial.parseInt()) {
+                else {
                     Serial.println("SENSOR DATA READ NOT OK!" +cid);
                   }
                 }
-          }
-          String data = espSerial.readString();
-          t3=millis();
-          Serial.print("Data: ");
-          Serial.println(data);
-          Serial.println(" read in: ");
-          Serial.print(t3-t2);
           
-          Serial.println("Sending data back");
-          t2=millis();
-          espSerial.print(data);
-          t3=millis();
-          Serial.print("Data: ");
-          Serial.print(" send back in: ");
-          Serial.print(t3-t2);
-          data+=";"+millis();
-          messwerte=data;
+//          String data = espSerial.readString();
+//          t3=millis();
+//          Serial.print("Data: ");
+//          Serial.println(data);
+//          Serial.println(" read in: ");
+//          Serial.print(t3-t2);
+//          
+//          Serial.println("Sending data back");
+//          t2=millis();
+//          espSerial.print(data);
+//          t3=millis();
+//          Serial.print("Data: ");
+//          Serial.print(" send back in: ");
+//          Serial.print(t3-t2);
+//          data+=";"+millis();
+
           // verbindung schliessen
           String clo = "AT+CIPCLOSE=";
           clo += cid;
@@ -320,6 +355,40 @@ void loop()
           Serial.println(" ms");
           espSerial.flush();
       }
+      else if (espSerial.peek()>0){
+          Serial.println("Sending /DATA/ " );
+          
+          String laenge="AT+CIPSEND=";
+          laenge += cid;
+          laenge += ",";
+          laenge += AnswerData.length();
+          laenge += "\r\n";
+          t0 = millis();
+          espSerial.print(laenge);
+          
+          // laenge senden und auf prompt '>' warten
+          espSerial.find(">");
+    
+          //Antwort senden
+          AnswerData += "\r\n"; //Antwort senden
+          espSerial.print(AnswerData);
+        
+          if (espSerial.find("SEND OK")) {
+              Serial.println("Send Website OK!");
+              t1 = millis();
+          }
+           // verbindung schliessen
+          String clo = "AT+CIPCLOSE=";
+          clo += cid;
+          clo += "\r\n";
+          espSerial.print(clo);
+          Serial.print(">>> page #");
+          Serial.print(counter);
+          Serial.print(" sent in ");
+          Serial.print(t1 - t0);
+          Serial.println(" ms");
+          espSerial.flush();
+        }
       
 //    if (espSerial.find("+IPD,HelloServer")) {    
 //    Serial.println(">>> connection from client");
@@ -388,7 +457,6 @@ void loop()
 //      Serial.print(" close ");
 //      Serial.println(ok2 ? "ok" : "failed");
 //    }
-  }
 //  if (loops >= DEBUGLOOP){
 //    Serial.println("no Connection from client :( ");
 //    loops=0;
