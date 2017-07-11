@@ -187,17 +187,19 @@ void loop() {
 
       unsigned long t0, t1;
   
-      // zum server verbinden
-      Serial.println(">>> connect to server");
       if ( !espConnectServer()) {
         Serial.println(">>> connection failed. :( retry");
           if (loops>= RETRYCOUNTER) {
             espConnectServer();
+            // zum server verbinden
+            Serial.println("RETRY>>> connect to server");
           }
        } //nicht connected    
 
       
       if( (espConnectServer() && resendDataToServer() ) || alarm ) {  //alle 10s, wenn kein alarm ist
+            // zum server verbinden
+            Serial.println(">>> connect to server");
             didaresend=true;
             Serial.println(">>> send Hello  ");
             t0=millis();
@@ -208,7 +210,7 @@ void loop() {
             client.print(HelloServer);
             Serial.println(HelloServer);
     //        Serial.println(client.read());
-    //        delay(500);
+            delay(5);
     //        Serial.println("Es kommt: "client.peek());
             if(client.peek() < 0) {
                 Serial.println("\n\nServer is not talking to me :( Closing...");
