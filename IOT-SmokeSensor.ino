@@ -281,6 +281,7 @@ void loop() {
   if ((loops > RETRYCOUNTER) && !wificonnected) {
     Serial.println("## Retry Wificonnection");
     wificonnected = espConnectWifi();
+    Serial.println(WiFi.localIP());
     loops = 0;
   }//for wificonnectretry
   
