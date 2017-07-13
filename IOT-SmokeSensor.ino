@@ -124,12 +124,14 @@ bool espConnectServer() {
   for (int i = 0; i < 5; i++) {
     if (client.connect(HOST, PORT)) {
       Serial.println("");
+      serverconnected=true;
       return true;
     }
     Serial.print(".");
     delay(100);
   }
   Serial.println("Could not connect to: "+HOST);
+  serverconnected=false;
   return false;
 }
 
@@ -206,7 +208,7 @@ void loop() {
        } //nicht connected    
 
       
-      if( (espConnectServer() && resendDataToServer() ) || alarm ) {  //alle 10s, wenn kein alarm ist
+      if( (serverconnected && resendDataToServer() ) || alarm ) {  //alle 10s, wenn kein alarm ist
             // zum server verbinden
             serverconnected=true;
             Serial.println(">>> connect to server");
