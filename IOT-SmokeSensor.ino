@@ -78,8 +78,9 @@ int buzzer = D1;
 #define SMOKEA0 A0 // Sensor Anschluss
 #define SENSORTHRES 400 //400ppm
 bool wificonnected = false;
+bool serverconnected = false;
 bool alarm = false;
-bool didaresend=false;
+bool didaresend = false;
 
 #define RESENDDATATIMEINMILLIS 10 //10s
 
@@ -89,6 +90,7 @@ void setup() {
   pinMode(buzzer, OUTPUT);
   pinMode(SMOKEA0, INPUT);
   Serial.begin(BAUD);
+  digitalWrite(greenLed, HIGH);
 
   //WIFI
   unsigned long t0, t1;
@@ -156,12 +158,13 @@ void loop() {
    int analogSensor = analogRead(SMOKEA0);
     Serial.print("Sensor Analog SMOKEA0: ");
     Serial.println(analogSensor);
-   alarm=checkAlarm(analogSensor, SENSORTHRES);
+  // alarm=checkAlarm(analogSensor, SENSORTHRES);
    if (analogSensor < SENSORTHRES) 
   {
     digitalWrite(redLed, LOW);
     digitalWrite(greenLed, HIGH);
     digitalWrite(buzzer, LOW);
+    alarm=false;
   }
   else
   {
@@ -176,19 +179,25 @@ void loop() {
   if (!wificonnected) {
     digitalWrite(redLed, HIGH);
     delay(100); //was 100ms
-  }
-  if (!wificonnected) { // maybe && (analogSensor < sensorThres) but green goes off anyway.
     digitalWrite(redLed, LOW);
+    delay(100); //was 1000ms
   }
-  delay(100); //was 1000ms
-
   // Just do that, if WIFI is connected;
   if  (wificonnected) {
 
+      //Collector not Connected => LED Blinks
+      if (!serverconnected) {
+        digitalWrite(greenLed, HIGH);
+        delay(100); //was 100ms
+        digitalWrite(greenLed, LOW);
+        delay(100); //was 1000ms
+      }
+     
       unsigned long t0, t1;
   
       if ( !espConnectServer()) {
         Serial.println(">>> connection failed. :( retry");
+        serverconnected=false;
           if (loops>= RETRYCOUNTER) {
             espConnectServer();
             // zum server verbinden
@@ -199,6 +208,7 @@ void loop() {
       
       if( (espConnectServer() && resendDataToServer() ) || alarm ) {  //alle 10s, wenn kein alarm ist
             // zum server verbinden
+            serverconnected=true;
             Serial.println(">>> connect to server");
             didaresend=true;
             Serial.println(">>> send Hello  ");
@@ -209,19 +219,12 @@ void loop() {
             
             client.print(HelloServer);
             Serial.println(HelloServer);
-    //        Serial.println(client.read());
-            delay(5);
+            //Serial.println(client.read());
+    
+            //delay(5);
     //        Serial.println("Es kommt: "client.peek());
-            if(client.peek() < 0) {
-                Serial.println("\n\nServer is not talking to me :( Closing...");
-                client.print("Connection: close\r\n\r\n");
-                client.flush();
-                Serial.println("...done");
-        
-            } 
-            else {
             
-              client.find('[');
+              if(  client.find('[') ){
               String antwort=client.readStringUntil(']');
               t1=millis();
               Serial.print("Server Answered for Hello: ");
