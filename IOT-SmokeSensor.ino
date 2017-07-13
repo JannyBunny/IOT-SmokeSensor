@@ -62,7 +62,7 @@ bool espConnectWifi()
       Serial.println("Wifi Connected!");
       return true;
     }
-    Serial.print(".");
+    Serial.print("~");
     delay(500);
   }
   return false;
@@ -95,7 +95,7 @@ void setup() {
   //WIFI
   unsigned long t0, t1;
   // verbinde esp mit dem wlan
-  Serial.println("### start esp simple web server\n");
+  Serial.println("### start Sensors WIFI \n");
   Serial.println("### connect to wifi"+(String)mySSID);
   t0 = millis();
   wificonnected = espConnectWifi();
@@ -111,9 +111,7 @@ void setup() {
     Serial.println(" ms");
     Serial.println("### Aborting: connect WIFI, please!");
   }
-  // Server starten und ip adresse ausgeben
-  //  server.begin();
-  //  Serial.print("### server started. ip adresse:  ");
+  // ip adresse ausgeben
   Serial.println(WiFi.localIP());
 
 
@@ -160,7 +158,7 @@ void loop() {
    int analogSensor = analogRead(SMOKEA0);
     Serial.print("Sensor Analog SMOKEA0: ");
     Serial.println(analogSensor);
-  // alarm=checkAlarm(analogSensor, SENSORTHRES);
+    alarm=checkAlarm(analogSensor, SENSORTHRES);
    if (analogSensor < SENSORTHRES) 
   {
     digitalWrite(redLed, LOW);
