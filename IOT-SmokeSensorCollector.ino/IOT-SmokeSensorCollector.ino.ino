@@ -18,8 +18,8 @@
 //{
 //    // use the following lines to send a string to a text widget
 //    
-//     String str = "TEST"; // assign the string you want to display 
-//     redkea.sendToTextWidget(widgetID, str);
+//     String str = "Test"; // assign the string you want to display 
+//     redkea.sendToTextWidget(widgetID, RKgetValue()); //str
 //}
 //REDKEA_REGISTER_SENDER(redkea, getValue)
 //
@@ -48,7 +48,13 @@
 //}
 //REDKEA_REGISTER_RECEIVER(redkea, getInfo)
 
-
+//String RKgetValue() {
+//  if (messwerte[mess_len][2]==1){
+//    return "ALARM!";  
+//  }
+//  else
+//    return "Alles OK";
+//}
 
 
 
@@ -317,8 +323,8 @@ void loop()
   bool ok1, ok2, alarm;
   String AnswerHS,AnswerData;
   for (int i=0;i<mess_len;i++) {
-      Serial.println(i);
-      AnswerData=printWebsite(messwerte[i][0],messwerte[i][1],messwerte[i][2]); 
+      //Serial.println(i);
+      AnswerData+=printWebsite(messwerte[i][0],messwerte[i][1],messwerte[i][2]); 
       
     }
   // auf verbindung von client warten
@@ -350,14 +356,12 @@ void loop()
             
              // laenge senden und auf prompt '>' warten
             espSerial.find("]]");
-            //messwerte[mess_len][3]=; // reserved for timestamp
+
             //Antwort senden
             AnswerHS += "\r\n"; //Antwort senden
             espSerial.print(AnswerHS);
-            messwerte[mess_len][0]=sid;
-            messwerte[mess_len][1]=analog;
-            messwerte[mess_len][2]=alarm;
-            Serial.println("wrote to array");
+            delay(5);
+            
             
             if (espSerial.find("SEND OK")) {
                 Serial.println("Send HelloClient OK!");
@@ -365,23 +369,28 @@ void loop()
             }
          
             t2=millis();
-            Serial.println(espSerial.readString());
+            //Serial.println(espSerial.readString());
             if (espSerial.find("[OK/")) {
                   sid=espSerial.parseInt();
                   Serial.println("SENSOR DATA READ "+(String)sid+" OK!");
                   if (mess_len>=DATA_ARRAYSIZE){
                       mess_len=0;
                       Serial.println("Array is full. beginning at 0");
+                      
                   }
-
+                  messwerte[mess_len][0]=sid;
+                  messwerte[mess_len][1]=analog;
+                  messwerte[mess_len][2]=alarm;
+                  //messwerte[mess_len][3]=; // reserved for timestamp
+                  Serial.println("wrote to array");
                   mess_len++;
                   Serial.println("Written Data to array");
-                }
+                }//ifok
                 else if(espSerial.find("[NOK/"))
                   {
                     sid=espSerial.parseInt();
                     Serial.println("SENSOR DATA READ NOT OK!" +(String)cid+" SensorID:" +(String)sid);
-                  }
+                  }//elseNOK
                 } //HelloServer
 
                else  
@@ -435,7 +444,7 @@ void loop()
       } //if ipd
      
   //Serial.println("Messwerte AlarmStatus: "+messwerte[mess_len-1][2]); 
-  if (alarm ) { //alarm state of the last run otherwise, try alarm && (boolean)messwerte[mess_len][2]
+  if (alarm ) { //alarm state of the last run otherwise, try alarm && messwerte[mess_len-1][2]
     state= HIGH;
   }
   digitalWrite(LEDPin, state);
