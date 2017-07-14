@@ -135,7 +135,7 @@ bool espAtCommand(char *cmd, char *ans, unsigned long tout)
   espSerial.print(cmd);
   // nach endestring ans suchen
   if (espSerial.find(ans)) {
-    Serial.println("Found answer: " + (String)ans);
+    Serial.println("Found answer: " + (String)ans+" From ESP");
     return true;
   }
   else {
@@ -324,20 +324,14 @@ void loop()
   // auf verbindung von client warten
     //Serial.println(espSerial.peek() );
     if (espSerial.available() && espSerial.find("+IPD,")) {
-//        Serial.println(espSerial.peek() );
         cid=espSerial.parseInt();
-        
-        Serial.println("client id="+cid);
-//        String conn=espSerial.readString();
-//        Serial.println(conn);
-       if (espSerial.find("[HelloServer")){
+        if (espSerial.find("[HelloServer")){
             Serial.println("Found HelloServer");
             sid=espSerial.parseInt();
             espSerial.find("/");
             analog=espSerial.parseInt();
             espSerial.find("/");
             alarm=espSerial.parseInt();
-            Serial.println(sid+analog+alarm);
                     AnswerHS="[[HelloClient/";
                     AnswerHS+=sid;
                     AnswerHS+="/";
@@ -355,12 +349,16 @@ void loop()
             Serial.println("send HelloClient"+AnswerHS);
             
              // laenge senden und auf prompt '>' warten
-            espSerial.find(">");
-      
+            espSerial.find("]]");
+            //messwerte[mess_len][3]=; // reserved for timestamp
             //Antwort senden
             AnswerHS += "\r\n"; //Antwort senden
             espSerial.print(AnswerHS);
-          
+            messwerte[mess_len][0]=sid;
+            messwerte[mess_len][1]=analog;
+            messwerte[mess_len][2]=alarm;
+            Serial.println("wrote to array");
+            
             if (espSerial.find("SEND OK")) {
                 Serial.println("Send HelloClient OK!");
                 t1 = millis();
@@ -370,37 +368,58 @@ void loop()
             Serial.println(espSerial.readString());
             if (espSerial.find("[OK/")) {
                   sid=espSerial.parseInt();
-                  Serial.println("SENSOR DATA READ OK!");
+                  Serial.println("SENSOR DATA READ "+(String)sid+" OK!");
                   if (mess_len>=DATA_ARRAYSIZE){
                       mess_len=0;
                       Serial.println("Array is full. beginning at 0");
                   }
-                  messwerte[mess_len][0]=sid;
-                  messwerte[mess_len][1]=analog;
-                  messwerte[mess_len][2]=alarm;
-                  //messwerte[mess_len][3]=; // reserved for timestamp
+
+                  mess_len++;
                   Serial.println("Written Data to array");
                 }
-                else {
-                    Serial.println("SENSOR DATA READ NOT OK!" +cid);
+                else if(espSerial.find("[NOK/"))
+                  {
+                    sid=espSerial.parseInt();
+                    Serial.println("SENSOR DATA READ NOT OK!" +(String)cid+" SensorID:" +(String)sid);
                   }
-                }
-          
-//          String data = espSerial.readString();
-//          t3=millis();
-//          Serial.print("Data: ");
-//          Serial.println(data);
-//          Serial.println(" read in: ");
-//          Serial.print(t3-t2);
-//          
-//          Serial.println("Sending data back");
-//          t2=millis();
-//          espSerial.print(data);
-//          t3=millis();
-//          Serial.print("Data: ");
-//          Serial.print(" send back in: ");
-//          Serial.print(t3-t2);
-//          data+=";"+millis();
+                } //HelloServer
+
+               else  
+                if (espSerial.find("GET /DATA/")) {
+                  Serial.println("Sending /DATA/ " );
+                  
+                  String laenge="AT+CIPSEND=";
+                  laenge += cid;
+                  laenge += ",";
+                  laenge += AnswerData.length();
+                  laenge += "\r\n";
+                  t0 = millis();
+                  espSerial.print(laenge);
+                  
+                  // laenge senden und auf prompt '>' warten
+                  espSerial.find(">");
+            
+                  //Antwort senden
+                  AnswerData += "\r\n"; //Antwort senden
+                  espSerial.print(AnswerData);
+                
+                  if (espSerial.find("SEND OK")) {
+                      Serial.println("Send Website OK!");
+                      t1 = millis();
+                  }
+                   // verbindung schliessen
+                  String clo = "AT+CIPCLOSE=";
+                  clo += cid;
+                  clo += "\r\n";
+                  espSerial.print(clo);
+                  Serial.print(">>> page #");
+                  Serial.print(counter);
+                  Serial.print(" sent in ");
+                  Serial.print(t1 - t0);
+                  Serial.println(" ms");
+                  espSerial.flush();
+                }//Data
+              //}//else 
 
           // verbindung schliessen
           String clo = "AT+CIPCLOSE=";
@@ -413,121 +432,17 @@ void loop()
           Serial.print(t1 - t0);
           Serial.println(" ms");
           espSerial.flush();
-      }
-      else if (espSerial.peek()>0){
-          Serial.println("Sending /DATA/ " );
-          
-          String laenge="AT+CIPSEND=";
-          laenge += cid;
-          laenge += ",";
-          laenge += AnswerData.length();
-          laenge += "\r\n";
-          t0 = millis();
-          espSerial.print(laenge);
-          
-          // laenge senden und auf prompt '>' warten
-          espSerial.find(">");
-    
-          //Antwort senden
-          AnswerData += "\r\n"; //Antwort senden
-          espSerial.print(AnswerData);
-        
-          if (espSerial.find("SEND OK")) {
-              Serial.println("Send Website OK!");
-              t1 = millis();
-          }
-           // verbindung schliessen
-          String clo = "AT+CIPCLOSE=";
-          clo += cid;
-          clo += "\r\n";
-          espSerial.print(clo);
-          Serial.print(">>> page #");
-          Serial.print(counter);
-          Serial.print(" sent in ");
-          Serial.print(t1 - t0);
-          Serial.println(" ms");
-          espSerial.flush();
-        }
-      
-//    if (espSerial.find("+IPD,HelloServer")) {    
-//    Serial.println(">>> connection from client");
-//    
-//    Serial.println(espSerial.read());
-//    
-    //}
-    
-    // verbindungsnummer lesen
-//    cid = espSerial.parseInt();
-//    // led ggfs. schalten: /led/1 = an, /led/0 = aus
-//    if (espSerial.find("/led/")) {
-//      led = espSerial.parseInt();
-//      if (led == 1)
-//        state = HIGH;
-//      else if (led == 0)
-//        state = LOW;
-//    }
-//    digitalWrite(LEDPin, state);
-//    // webseite zusammensetzen
-//    String page = webpage1;
-//    page += counter;
-//    page += webpage2;
-//    page += state == HIGH ? "/led/0" : "/led/1";
-//    page += webpage3;
-//    page += state == HIGH ? "Led Off" : "Led On";
-//    page += webpage4;
-//    // laengenkommando: at+cipsend=connection,laenge
-//    String len = "AT+CIPSEND=";
-//    len += cid;
-//    len += ",";
-//    len += page.length();
-//    len += "\r\n";
-//    t0 = millis();
-//    // laenge senden und auf prompt '>' warten
-//    espSerial.print(len);
-//    espSerial.find(">");
-//    // webseite senden
-//    page += "\r\n";
-//    espSerial.print(page);
-//    // senden war ok?
-//    ok1 = espSerial.find("SEND OK");
-//    t1 = millis();
-//    // verbindung schliessen
-//    String clo = "AT+CIPCLOSE=";
-//    clo += cid;
-//    clo += "\r\n";
-//    espSerial.print(clo);
-//    // schliessen ok?
-//    ok2 = espSerial.find("OK");
-//    // status ausgeben
-//    if (ok1 && ok2) {
-//      Serial.print(">>> page #");
-//      Serial.print(counter);
-//      Serial.print(" sent in ");
-//      Serial.print(t1 - t0);
-//      Serial.println(" ms");
-//    }
-//    else {
-//      Serial.print(">>> page #");
-//      Serial.print(counter);
-//      Serial.print(" NOT sent in ");
-//      Serial.print(t1 - t0);
-//      Serial.print(" ms >>> send ");
-//      Serial.print(ok1 ? "ok" : "failed");
-//      Serial.print(" close ");
-//      Serial.println(ok2 ? "ok" : "failed");
-//    }
-//  if (loops >= DEBUGLOOP){
-//    Serial.println("no Connection from client :( ");
-//    loops=0;
-//  }
-  if (alarm) {
+      } //if ipd
+     
+  //Serial.println("Messwerte AlarmStatus: "+messwerte[mess_len-1][2]); 
+  if (alarm ) { //alarm state of the last run otherwise, try alarm && (boolean)messwerte[mess_len][2]
     state= HIGH;
   }
   digitalWrite(LEDPin, state);
   digitalWrite(10, HIGH);//DEBUG LED GELB
   loops++;
   //espSerial.flush();
-  delay(500);
+  //delay(500);
   //Serial.flush(); //BAD BAD
 
 //  //redkeaLoop
