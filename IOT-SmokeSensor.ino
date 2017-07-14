@@ -213,9 +213,9 @@ void loop() {
             didaresend=true;
             Serial.println(">>> send Hello  ");
             t0=millis();
-            String HelloServer="GET [HelloServer/"+(String)SID+"/"+analogSensor+"/"+alarm+" HTTP/1.1\r\nHost: ";
+            String HelloServer="GET [HelloServer/"+(String)SID+"/"+analogSensor+"/"+alarm+"] HTTP/1.1\r\nHost: ";
             HelloServer+=HOST.toString().c_str(); // We Have to get an correct IP here, bc IPAdress is an array (:
-            HelloServer+="]\r\n";
+            HelloServer+="\r\n";
             
             client.print(HelloServer);
             Serial.println(HelloServer);
@@ -233,7 +233,7 @@ void loop() {
               Serial.println(t1-t0 +"ms");
               
   
-              if (antwort.equals("HelloClient/"+(String)SID+"/"+analogSensor+"/"+alarm)) {
+              if (antwort.equals("[HelloClient/"+(String)SID+"/"+analogSensor+"/"+alarm)) {
                   String message="GET [OK/"+(String)SID+" HTTP/1.1\r\nHost: ";
                          message+=HOST.toString().c_str(); // We Have to get an correct IP here, bc IPAdress is an array (:
                          message+="]\r\n";
